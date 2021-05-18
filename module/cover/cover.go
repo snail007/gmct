@@ -65,7 +65,7 @@ func (s *Cover) Start(args interface{}) (err error) {
 		verbose = "-v"
 	}
 	var output string
-	output, err = s.exec("go list ./... | grep -v /main | grep -v /vendor | grep -v /examples | grep -v grep")
+	output, err = s.exec("go list ./... | grep -v /main | grep -v /vendor | grep -v /examples | grep -v grep", "")
 	if err != nil {
 		return
 	}
@@ -96,14 +96,18 @@ func (s *Cover) Start(args interface{}) (err error) {
 		g.Add(len(packages))
 	}
 	coverPkgs := strings.Join(packages, ",")
+	os.Setenv("GMCT_COVER_VERBOSE", fmt.Sprintf("%v", *s.args.Verbose))
+	os.Setenv("GMCT_COVER_RACE", fmt.Sprintf("%v", *s.args.Race))
+	os.Setenv("GMCT_COVER_PACKAGES", coverPkgs)
 	for k, pkg := range packages {
 		b := make([]byte, 16)
 		io.ReadFull(rand.Reader, b)
 		files[k] = filepath.Join(os.TempDir(), fmt.Sprintf("%x", b)) + ".gocc.tmp"
 		w := func(file, pkg string) {
+			workDir := filepath.Join(gopath, "src", pkg)
 			cmd := `go test ` + verbose + ` ` + race + ` -covermode=atomic -coverprofile=` + file +
 				` -coverpkg=` + coverPkgs + ` ` + pkg
-			output, err = s.exec(cmd)
+			output, err = s.exec(cmd, workDir)
 			if err != nil {
 				return
 			}
@@ -137,6 +141,17 @@ func (s *Cover) Start(args interface{}) (err error) {
 			return e
 		}
 	}
+	//scan additional code coverage files by testing
+	for _, pkg := range packages {
+		path := filepath.Join(gopath, "src", pkg)
+		fs, _ := filepath.Glob(path + "/*.gocc.tmp")
+		for _, f := range fs {
+			files = append(files, f)
+		}
+		if len(fs) > 0 && *s.args.Verbose {
+			fmt.Printf("cover files found %v\n", fs)
+		}
+	}
 	for _, file := range files {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
 			continue
@@ -153,11 +168,11 @@ func (s *Cover) Start(args interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	_, err = s.exec("go tool cover -func=coverage.txt -o total.txt")
+	_, err = s.exec("go tool cover -func=coverage.txt -o total.txt", "")
 	if err != nil {
 		return
 	}
-	output, err = s.exec("tail -n 1 total.txt")
+	output, err = s.exec("tail -n 1 total.txt", "")
 	if err != nil {
 		return
 	}
@@ -165,7 +180,7 @@ func (s *Cover) Start(args interface{}) (err error) {
 		fmt.Println(output)
 	}
 	if !*s.args.Silent {
-		_, err = s.exec("go tool cover -html=coverage.txt")
+		_, err = s.exec("go tool cover -html=coverage.txt", "")
 		if err != nil {
 			return
 		}
@@ -183,15 +198,16 @@ func (s *Cover) Start(args interface{}) (err error) {
 	return
 }
 
-func (s *Cover) exec(cmd string) (output string, err error) {
+func (s *Cover) exec(cmd, workDir string) (output string, err error) {
 	c := exec.Command("bash", "-c", cmd)
 	c.Env = append(c.Env, os.Environ()...)
+	c.Dir = workDir
 	b, err := c.CombinedOutput()
+	output = string(b)
 	if err != nil {
-		fmt.Println(err, "\n", string(b))
+		fmt.Printf("exec fail, err: %v, command: %s\noutput: \n%s", err, cmd, output)
 		return
 	}
-	output = string(b)
 	return
 }
 
@@ -201,5 +217,52 @@ func (s *Cover) hasTestFile(pkg string) bool {
 	return len(files) > 0
 }
 func (s *Cover) Stop() {
+	return
+}
+
+func newCmdFromEnv(runName string) string {
+	if strings.Contains(runName, "/") {
+		rs := strings.Split(runName, "/")
+		runName = "^" + strings.Join(rs, "$/^") + "$"
+	}
+	rb := make([]byte, 16)
+	io.ReadFull(rand.Reader, rb)
+	d, _ := os.Getwd()
+	coverfile := filepath.Join(d, fmt.Sprintf("%x", rb)) + ".gocc.tmp"
+	race := os.Getenv("GMCT_COVER_RACE")
+	packages := os.Getenv("GMCT_COVER_PACKAGES")
+	pkg := strings.TrimPrefix(d, filepath.Join(os.Getenv("GOPATH"), "src"))[1:]
+	if race == "true" {
+		race = "-v"
+	} else {
+		race = ""
+	}
+	cover := ""
+	if packages != "" {
+		cover = fmt.Sprintf("-covermode=atomic -coverprofile=%s -coverpkg=%s", coverfile, packages)
+	}
+	return fmt.Sprintf(`go test -v -run=%s %s %s %s`,
+		runName, cover, race, pkg)
+}
+
+func ExecTestFunc(testFuncName string) (out string, err error) {
+	isVerbose := os.Getenv("GMCT_COVER_VERBOSE") == "true"
+	defer func() {
+		if isVerbose {
+			fmt.Printf("output: %s", out)
+			fmt.Printf(">>> end child testing process %s\n", testFuncName)
+		}
+	}()
+	if isVerbose {
+		fmt.Printf(">>> start child testing process %s\n", testFuncName)
+	}
+	cmdStr := newCmdFromEnv(testFuncName)
+	if isVerbose {
+		fmt.Println(cmdStr)
+	}
+	c := exec.Command("bash", "-c", cmdStr)
+	c.Env = append(c.Env, os.Environ()...)
+	b, err := c.CombinedOutput()
+	out = string(b)
 	return
 }
