@@ -1,6 +1,7 @@
 package cover
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"github.com/snail007/gmct/tool"
@@ -206,7 +207,17 @@ func (s *Cover) exec(cmd, workDir string) (output string, err error) {
 	b, err := c.CombinedOutput()
 	output = string(b)
 	if err != nil {
-		fmt.Printf("exec fail, err: %v, command: %s\noutput: \n%s", err, cmd, output)
+		var b bytes.Buffer
+		for _, line := range strings.Split(output, "\n") {
+			if strings.Contains(line, "warning: no packages being tested depend on matches for pattern") {
+				continue
+			}
+			b.WriteString(line + "\n")
+		}
+		fmt.Printf("EXEC FAIL, COMMAND: %s\n"+
+			"ERROR: %s\n"+
+			"OUTPUT: \n%s\n",
+			cmd, err, b.String())
 		return
 	}
 	return
