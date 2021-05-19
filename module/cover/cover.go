@@ -43,6 +43,7 @@ func (s *Cover) init(args0 interface{}) (err error) {
 }
 
 func (s *Cover) Start(args interface{}) (err error) {
+	os.Setenv("GMCT_COVER", "true")
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
 		return fmt.Errorf("GOPATH not found")
