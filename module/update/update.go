@@ -1,6 +1,7 @@
 package update
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	gcore "github.com/snail007/gmc/core"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -54,7 +56,7 @@ func (s *Update) Start(args interface{}) (err error) {
 		return
 	}
 	currentVersion := tool.Version
-
+	// check
 	d, err := ghttp.Download(updateAPIURL, time.Second*30, nil)
 	if err != nil {
 		return
@@ -71,7 +73,19 @@ func (s *Update) Start(args interface{}) (err error) {
 			return fmt.Errorf("already installed newest version, you can using -f to force update")
 		}
 	}
-	glog.Infof("ready update to v%s",newVersion)
+
+	// confirm
+	if !*s.args.Force {
+		fmt.Printf("Confirm update to v%s [y/N]:", newVersion)
+		r := bufio.NewReader(os.Stdin)
+		str, _ := r.ReadString('\n')
+		if strings.ToLower(strings.Trim(str, " \n\t")) != "y" {
+			return
+		}
+	}
+
+	// start
+	glog.Infof("ready update to v%s", newVersion)
 	tmpFile := gos.TempFile("gmct-update-", ".tar.gz")
 	defer func() {
 		os.Remove(tmpFile)
