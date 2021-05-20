@@ -12,6 +12,7 @@ import (
 	"github.com/snail007/gmct/module/run"
 	ssht "github.com/snail007/gmct/module/ssh"
 	toolx "github.com/snail007/gmct/module/tool"
+	"github.com/snail007/gmct/module/update"
 	"github.com/snail007/gmct/module/view"
 	"os"
 	"strings"
@@ -22,6 +23,10 @@ import (
 	"github.com/snail007/gmct/tool"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
+
+func init() {
+	tool.Version = version
+}
 
 func main() {
 
@@ -51,6 +56,7 @@ func main() {
 	dockerArgs := docker.NewDockerArgs()
 	toolArgs := toolx.NewToolArgs()
 	sshArgs := ssht.NewSshArgs()
+	updateArgs := update.NewUpdateArgs()
 	//all subtool defined here
 
 	// #2
@@ -145,6 +151,10 @@ func main() {
 	sshArgs.Command = toolSsh.Flag("cmd", "command to execute, or '@file' exec script file").Short('e').String()
 	sshArgs.SSHURL = toolSsh.Flag("url", "ssh info url").Short('u').String()
 
+	// sub tool update
+	updateCMD := gmctApp.Command("update", "update gmct to the latest version")
+	updateArgs.Force = updateCMD.Flag("force", "force update").Default("false").Short('f').Bool()
+
 	//check command line args
 	if len(os.Args) == 0 {
 		os.Args = []string{""}
@@ -222,6 +232,9 @@ func main() {
 	case "ssh":
 		args = sshArgs
 		gmcToolObj = ssht.NewSsh()
+	case "update":
+		args = updateArgs
+		gmcToolObj = update.NewUpdate()
 	default:
 		fmt.Printf("sub command '%s' not found\n", subToolName)
 		return
