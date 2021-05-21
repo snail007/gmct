@@ -46,9 +46,10 @@ func NewDocker() *Docker {
 
 func (s *Docker) init(args0 interface{}) (err error) {
 	s.args = args0.(DockerArgs)
-	if *s.args.CMD == "" {
-		return fmt.Errorf("program name required")
+	if len(tool.Args) == 0 {
+		return fmt.Errorf("execute arguments required")
 	}
+	*s.args.CMD = strings.Join(tool.Args, " ")
 
 	for k, v := range *s.args.DArg_v {
 		(*s.args.DArg_v)[k] = " -v " + v + " "
@@ -77,7 +78,7 @@ func (s *Docker) Start(args interface{}) (err error) {
 	if runtime.GOOS == "linux" {
 		net = "--network=host"
 	}
-	cmdStr := fmt.Sprintf("docker run -t --rm -w /mnt %s %s %s %s %s ./%s",
+	cmdStr := fmt.Sprintf("docker run -t --rm -w /mnt %s %s %s %s %s %s",
 		net,
 		strings.Join(*s.args.DArg_p, ""),
 		strings.Join(*s.args.DArg_e, ""),
@@ -85,8 +86,8 @@ func (s *Docker) Start(args interface{}) (err error) {
 		*s.args.Image,
 		*s.args.CMD,
 	)
-	reg:=regexp.MustCompile(`\s+`)
-	cmdStr=reg.ReplaceAllString(cmdStr," ")
+	reg := regexp.MustCompile(`\s+`)
+	cmdStr = reg.ReplaceAllString(cmdStr, " ")
 	if *s.args.IsDebug {
 		fmt.Println("exec:", cmdStr)
 	}

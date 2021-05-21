@@ -26,10 +26,13 @@ import (
 
 func init() {
 	tool.Version = version
+	if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "version") {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 }
 
 func main() {
-
 	runCmdArgs := []string{}
 	if len(os.Args) >= 2 && os.Args[1] == "run" {
 		if len(os.Args) > 2 {
@@ -125,8 +128,7 @@ func main() {
 	viewArgs.ForceCreate = viewCmd.Flag("force", "overwrite model file, if it exists.").Short('f').Default("false").Bool()
 
 	// subtool docker
-	dockerCmd := gmctApp.Command("docker", "create a model in current directory")
-	dockerArgs.CMD = dockerCmd.Flag("cmd", "program to execute in current directory").Short('c').Default("").String()
+	dockerCmd := gmctApp.Command("docker", "create a model in current directory, all run arguments after --, example: gmct docker -- ./foo -u xxx")
 	dockerArgs.Image = dockerCmd.Flag("img", "image used to run program").Default("debian:8").String()
 	dockerArgs.DArg_v = dockerCmd.Flag("volume", "volume").Short('v').Strings()
 	dockerArgs.DArg_p = dockerCmd.Flag("port", "port").Short('p').Strings()
