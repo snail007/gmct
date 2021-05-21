@@ -20,6 +20,7 @@ type DockerArgs struct {
 	CMD     *string
 	Image   *string
 	IsDebug *bool
+	Golang  *bool
 }
 
 func NewDockerArgs() DockerArgs {
@@ -31,6 +32,7 @@ func NewDockerArgs() DockerArgs {
 		CMD:     new(string),
 		Image:   new(string),
 		IsDebug: new(bool),
+		Golang:  new(bool),
 	}
 }
 
