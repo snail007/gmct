@@ -128,13 +128,20 @@ func main() {
 	viewArgs.ForceCreate = viewCmd.Flag("force", "overwrite model file, if it exists.").Short('f').Default("false").Bool()
 
 	// subtool docker
-	dockerCmd := gmctApp.Command("docker", "create a model in current directory, all run arguments after --, example: gmct docker -- ./foo -u xxx")
-	dockerArgs.Image = dockerCmd.Flag("img", "image used to run program").Default("debian:8").String()
+	dockerCmd := gmctApp.Command("docker", "create a model in current directory, all run arguments after -- \n "+
+		"Example:  \n "+
+		"gmct docker -- ./foo -u xxx \n "+
+		"gmct docker -g -- go build \n "+
+		"gmct docker -g -e GO111MODULE=off -- go build \n "+
+		"gmct docker -g -e GO111MODULE=off -- go build -buildmode=c-archive *.go \n "+
+		"gmct docker -g -- go build -buildmode=c-archive *.go \n",
+	)
+	dockerArgs.Image = dockerCmd.Flag("img", "image used to run program").Default("snail007/golang:1.16").String()
 	dockerArgs.DArg_v = dockerCmd.Flag("volume", "volume").Short('v').Strings()
 	dockerArgs.DArg_p = dockerCmd.Flag("port", "port").Short('p').Strings()
 	dockerArgs.DArg_e = dockerCmd.Flag("env", "environment variable").Short('e').Strings()
 	dockerArgs.IsDebug = dockerCmd.Flag("debug", "debug output").Bool()
-	dockerArgs.Golang = dockerCmd.Flag("golang", "sets some golang environment variables").Bool()
+	dockerArgs.Golang = dockerCmd.Flag("golang", "sets some golang environment variables").Short('g').Bool()
 
 	// subtool tool
 	toolCMD := gmctApp.Command("tool", "gmct tools collection")

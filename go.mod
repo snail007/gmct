@@ -3,8 +3,6 @@ module github.com/snail007/gmct
 go 1.12
 
 require (
-	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213 // indirect
-	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/schollz/progressbar/v3 v3.8.1
 	github.com/snail007/gmc v0.0.0-20210520085422-78904d697668
 	github.com/stretchr/testify v1.3.0

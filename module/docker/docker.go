@@ -7,6 +7,7 @@ import (
 	"github.com/snail007/gmct/tool"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -52,6 +53,21 @@ func (s *Docker) init(args0 interface{}) (err error) {
 		return fmt.Errorf("execute arguments required")
 	}
 	*s.args.CMD = strings.Join(tool.Args, " ")
+
+	if *s.args.Golang {
+		gopath := os.Getenv("GOPATH")
+		if gopath == "" {
+			gopath, _ = os.UserHomeDir()
+			gopath = filepath.Join(gopath, "go")
+		}
+		d, _ := os.Getwd()
+		if !strings.HasPrefix(d, gopath) {
+			return fmt.Errorf("you must run command in GOPATH")
+		}
+		pkg := strings.Trim(strings.Replace(d, filepath.Join(gopath, "src"), "", 1), "/")
+		*s.args.DArg_v = append(*s.args.DArg_v, gopath+":/go")
+		*s.args.DArg_e = append(*s.args.DArg_e, "BUILDDIR="+pkg, "GOSUMDB=off", "CGO_ENABLED=1")
+	}
 
 	for k, v := range *s.args.DArg_v {
 		(*s.args.DArg_v)[k] = " -v " + v + " "
