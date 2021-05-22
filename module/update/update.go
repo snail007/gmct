@@ -8,8 +8,8 @@ import (
 	gcore "github.com/snail007/gmc/core"
 	glog "github.com/snail007/gmc/module/log"
 	gcompress "github.com/snail007/gmc/util/compress"
-	"github.com/snail007/gmc/util/gos"
 	ghttp "github.com/snail007/gmc/util/http"
+	grand "github.com/snail007/gmc/util/rand"
 	"github.com/snail007/gmct/tool"
 	"io"
 	"os"
@@ -93,7 +93,12 @@ func (s *Update) Start(args interface{}) (err error) {
 
 	// start
 	glog.Infof("ready update to v%s", newVersion)
-	tmpFile := gos.TempFile("gmct-update-", ".tar.gz")
+	tmpFile := filepath.Join(os.TempDir(), grand.String(32), "gmct-update.tar.gz")
+	tmpPath := filepath.Dir(tmpFile)
+	err = os.Mkdir(tmpPath, 0755)
+	if err != nil {
+		return
+	}
 	tfile, err := os.OpenFile(tmpFile, os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		return
@@ -101,6 +106,7 @@ func (s *Update) Start(args interface{}) (err error) {
 	defer func() {
 		tfile.Close()
 		os.Remove(tmpFile)
+		os.RemoveAll(tmpPath)
 	}()
 	var newAsset Assets
 	ext := ""
@@ -134,6 +140,7 @@ func (s *Update) Start(args interface{}) (err error) {
 	if err != nil {
 		return
 	}
+	tfile.Close()
 	binPath, err := os.Executable()
 	if err != nil {
 		return err
@@ -149,11 +156,12 @@ func (s *Update) Start(args interface{}) (err error) {
 	// uncompress
 	gzfile, err := os.Open(tmpFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("open update file fail, error: %s", err)
 	}
 	defer gzfile.Close()
-	_, err = gcompress.Unpack(gzfile, os.TempDir())
+	_, err = gcompress.Unpack(gzfile, tmpPath)
 	if err != nil {
+		return fmt.Errorf("decompress fail, %s", err)
 		return err
 	}
 	gzfile.Close()
