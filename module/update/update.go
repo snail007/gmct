@@ -165,7 +165,7 @@ func (s *Update) Start(args interface{}) (err error) {
 		return err
 	}
 	gzfile.Close()
-	newFile := filepath.Join(os.TempDir(), "gmct"+ext)
+	newFile := filepath.Join(tmpPath, "gmct"+ext)
 	os.Chmod(newFile, 0755)
 	err = os.Rename(newFile, binPath)
 	glog.Info("done!")
