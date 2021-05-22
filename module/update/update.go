@@ -166,8 +166,28 @@ func (s *Update) Start(args interface{}) (err error) {
 	}
 	gzfile.Close()
 	newFile := filepath.Join(tmpPath, "gmct"+ext)
-	os.Chmod(newFile, 0755)
-	err = os.Rename(newFile, binPath)
+
+	fileNew, _ := os.Open(newFile)
+	fileNewTmpPath:=binPath + ".tmp"
+	fileNewTmp, err := os.OpenFile(fileNewTmpPath,os.O_CREATE|os.O_WRONLY,0755)
+	if err != nil {
+		return fmt.Errorf("create temp target fail, %s", err)
+		return err
+	}
+	defer func() {
+		fileNew.Close()
+		os.Remove(newFile)
+		fileNewTmp.Close()
+	}()
+	// copy update file to bin path as temp file
+	_,err=io.Copy(fileNewTmp, fileNew)
+	if err != nil {
+		return fmt.Errorf("wirte temp target fail, %s", err)
+		return err
+	}
+	// replace old bin file with update file
+	err = os.Rename(fileNewTmpPath, binPath)
+	os.Chmod(binPath, 0755)
 	glog.Info("done!")
 	return
 }
