@@ -22,6 +22,7 @@ type CoverArgs struct {
 	KeepResult *bool
 	ForceCheck *bool
 	Ordered    *bool
+	Only       *bool
 }
 
 func NewCoverArgs() CoverArgs {
@@ -66,8 +67,12 @@ func (s *Cover) Start(args interface{}) (err error) {
 	if *s.args.Verbose {
 		verbose = "-v"
 	}
+	dir := "./..."
+	if *s.args.Only {
+		dir = "./"
+	}
 	var output string
-	output, err = s.exec("go list ./... | grep -v /main | grep -v /vendor | grep -v /examples | grep -v grep", "")
+	output, err = s.exec("go list "+dir+" | grep -v /main | grep -v /vendor | grep -v /examples | grep -v grep", "")
 	if err != nil {
 		return
 	}
@@ -85,7 +90,6 @@ func (s *Cover) Start(args interface{}) (err error) {
 		err = fmt.Errorf("no match package found")
 		return
 	}
-
 	files := make([]string, len(packages))
 	payload := "mode: atomic\n"
 	var g sync.WaitGroup

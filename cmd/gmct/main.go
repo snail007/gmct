@@ -120,6 +120,7 @@ func main() {
 	coverArgs.Silent = coverCmd.Flag("silent", "silent mode, not to open a browser").Short('s').Default("false").Bool()
 	coverArgs.ForceCheck = coverCmd.Flag("force", "force check the package even it not contains any *_test.go file").Short('f').Default("false").Bool()
 	coverArgs.Ordered = coverCmd.Flag("order", "disable parallel run").Short('o').Default("false").Bool()
+	coverArgs.Only = coverCmd.Flag("only", "only testing current directory without sub directory").Default("false").Bool()
 
 	// subtool controller
 	viewCmd := gmctApp.Command("view", "create a controller in current directory")
