@@ -10,6 +10,7 @@ import (
 	gotool "github.com/snail007/gmct/module/go"
 	"github.com/snail007/gmct/module/gtag"
 	"github.com/snail007/gmct/module/i18n"
+	installtool "github.com/snail007/gmct/module/install"
 	"github.com/snail007/gmct/module/model"
 	newx "github.com/snail007/gmct/module/new"
 	"github.com/snail007/gmct/module/run"
@@ -65,6 +66,7 @@ func main() {
 	sshArgs := ssht.NewSshArgs()
 	updateArgs := update.NewUpdateArgs()
 	goToolArgs := gotool.NewGoToolArgs()
+	installToolArgs := installtool.NewInstallToolArgs()
 	//all subtool defined here
 
 	// #2
@@ -184,6 +186,9 @@ func main() {
 	goToolInstallCMD := goToolCMD.Command("install", "go package install toolkit, and short names are supported: "+strings.Join(gotool.CmdList(), ", "))
 	_ = goToolInstallCMD
 
+	// sub tool install
+	gmctApp.Command("install", "install toolkit")
+
 	//check command line args
 	if len(os.Args) == 0 {
 		os.Args = []string{""}
@@ -268,6 +273,9 @@ func main() {
 		goToolArgs.SubName = &subToolSubName
 		args = goToolArgs
 		gmcToolObj = gotool.NewGoTool()
+	case "install":
+		args = installToolArgs
+		gmcToolObj = installtool.NewInstallTool()
 	default:
 		fmt.Printf("sub command '%s' not found\n", subToolName)
 		return
