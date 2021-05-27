@@ -170,11 +170,13 @@ func main() {
 
 	// sub tool gotool
 	goToolCMD := gmctApp.Command("go", "go development toolkit")
-	gotoolLintCMD := goToolCMD.Command("lint", "print go code issues are found")
+	gotoolLintCMD := goToolCMD.Command("lint", "print go code issues are found. Install: go get -u golang.org/x/lint/golint")
 	_ = gotoolLintCMD
+	gotoolVetCMD := goToolCMD.Command("vet", "print go code issues are found")
+	_ = gotoolVetCMD
 	goToolFmtCMD := goToolCMD.Command("fmt", "format code in go files")
 	_ = goToolFmtCMD
-	goToolCheckCMD := goToolCMD.Command("check", "combine of lint and fmt")
+	goToolCheckCMD := goToolCMD.Command("check", "combine of vet, lint and fmt")
 	_ = goToolCheckCMD
 
 	//check command line args
