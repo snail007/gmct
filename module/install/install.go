@@ -54,7 +54,7 @@ func (s *InstallTool) Start(args interface{}) (err error) {
 		return
 	}
 	if installPkg == "" {
-		return fmt.Errorf("package required")
+		return fmt.Errorf("install name required")
 	}
 	return s.install("")
 }
