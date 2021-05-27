@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	gcore "github.com/snail007/gmc/core"
+	glog "github.com/snail007/gmc/module/log"
 	"github.com/snail007/gmct/module/controller"
 	"github.com/snail007/gmct/module/cover"
 	"github.com/snail007/gmct/module/docker"
@@ -31,6 +33,7 @@ func init() {
 		fmt.Println(version)
 		os.Exit(0)
 	}
+	glog.SetFlag(gcore.LogFlagNormal)
 }
 
 func main() {
@@ -178,6 +181,8 @@ func main() {
 	_ = goToolFmtCMD
 	goToolCheckCMD := goToolCMD.Command("check", "combine of vet, lint and fmt")
 	_ = goToolCheckCMD
+	goToolInstallCMD := goToolCMD.Command("install", "go package install toolkit, and short names are supported: "+strings.Join(gotool.CmdList(), ", "))
+	_ = goToolInstallCMD
 
 	//check command line args
 	if len(os.Args) == 0 {

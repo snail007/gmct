@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/schollz/progressbar/v3"
-	gcore "github.com/snail007/gmc/core"
 	glog "github.com/snail007/gmc/module/log"
 	gcompress "github.com/snail007/gmc/util/compress"
 	ghttp "github.com/snail007/gmc/util/http"
@@ -51,7 +50,6 @@ func (s *Update) init(args0 interface{}) (err error) {
 }
 
 func (s *Update) Start(args interface{}) (err error) {
-	glog.SetFlag(gcore.LFLAG_NORMAL)
 	err = s.init(args)
 	if err != nil {
 		return
@@ -161,7 +159,6 @@ func (s *Update) Start(args interface{}) (err error) {
 	_, err = gcompress.Unpack(gzfile, tmpPath)
 	if err != nil {
 		return fmt.Errorf("decompress fail, %s", err)
-		return err
 	}
 	gzfile.Close()
 	newFile := filepath.Join(tmpPath, "gmct"+ext)
@@ -171,7 +168,6 @@ func (s *Update) Start(args interface{}) (err error) {
 	fileNewTmp, err := os.OpenFile(fileNewTmpPath, os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		return fmt.Errorf("create temp target fail, %s", err)
-		return err
 	}
 	defer func() {
 		fileNew.Close()
@@ -182,7 +178,6 @@ func (s *Update) Start(args interface{}) (err error) {
 	_, err = io.Copy(fileNewTmp, fileNew)
 	if err != nil {
 		return fmt.Errorf("wirte temp target fail, %s", err)
-		return err
 	}
 	// replace old bin file with update file
 	err = os.Rename(fileNewTmpPath, binPath)

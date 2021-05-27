@@ -196,7 +196,6 @@ func (s *Run) restartMonitor() {
 			}
 		}
 	}
-	return
 }
 func (s *Run) scan() {
 	list := map[string]int64{}
@@ -255,7 +254,6 @@ func (s *Run) scan() {
 			}
 		}
 	}
-	return
 }
 func (s *Run) Stop() {
 	s.cancle()
