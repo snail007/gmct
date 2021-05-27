@@ -71,7 +71,7 @@ func (s *InstallTool) install(pkg string) (err error) {
 		installPkg = pkg
 	}
 	// fetch install script from https://github.com/snail007/gmct/
-	glog.Infof("Fetch [ %s ] from snail007/gmct ...", installPkg)
+	glog.Infof("fetch [ %s ] from snail007/gmct ...", installPkg)
 	u := "https://github.host900.com/snail007/gmct/raw/master/scripts/install/" + installPkg + ".sh"
 	c := ghttp.NewHTTPClient()
 	c.SetDNS("8.8.8.8:53")
@@ -84,12 +84,13 @@ func (s *InstallTool) install(pkg string) (err error) {
 		return fmt.Errorf("request fail, code: %d%s", code, m)
 	}
 	cmd := s.exportString() + string(b)
-	glog.Info("Install >>> " + strings.SplitN(installPkg, ";", 2)[0])
+	glog.Infof("running [ %s ] install script ...", installPkg)
 	b, err = exec.Command("bash", "-c", cmd).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("install fail, OUTPUT: %s, ERROR: %s", string(b), err)
 	}
 	if len(b) > 0 {
+		glog.Infof("[ %s ] install script done.", installPkg)
 		fmt.Println(string(b))
 	}
 	return
