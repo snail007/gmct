@@ -121,14 +121,18 @@ func (s *GoTool) install(pkg string) (err error) {
 	}
 	cmd := ""
 	if !strings.Contains(installPkg, "/") {
-		// the short name not found locally, try fetch from https://github.com/snail007/gmct/scripts
-		glog.Infof("%s not found, fetch from snail007/gmct ...",installPkg)
-		u := "https://mirrors.host900.com/https://raw.githubusercontent.com/snail007/gmct/master/scripts/go/install/" + installPkg + ".sh"
-		c:=ghttp.NewHTTPClient()
+		// the short name not found locally, try fetch from https://github.com/snail007/gmct/
+		glog.Infof("[ %s ] not found locally, fetch from snail007/gmct ...", installPkg)
+		u := "https://github.host900.com/snail007/gmct/raw/master/scripts/go/install/" + installPkg + ".sh"
+		c := ghttp.NewHTTPClient()
 		c.SetDNS("8.8.8.8:53")
-		b, e := c.Download(u, time.Second*30, nil)
-		if e != nil {
-			return e
+		b, code, _, e := c.Get(u, time.Second*30, nil)
+		if code != 200 {
+			m := ""
+			if e != nil {
+				m = ", error: " + e.Error()
+			}
+			return fmt.Errorf("request fail, code: %d%s", code, m)
 		}
 		cmd = string(b)
 	}
