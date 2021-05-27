@@ -36,8 +36,7 @@ type Ssh struct {
 }
 
 func NewSsh() *Ssh {
-	return &Ssh{
-	}
+	return &Ssh{}
 }
 
 func (s *Ssh) init(args0 interface{}) (err error) {

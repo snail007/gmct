@@ -105,7 +105,7 @@ func (s *Template) pack() (err error) {
 		str := base64.StdEncoding.EncodeToString(b)
 		buf.WriteString(fmt.Sprintf("\t\t\"%s\" : \"%s\",\n", strings.TrimSuffix(v, *s.args.Extension), str))
 	}
-	currentDir,_:=filepath.Abs(".")
+	currentDir, _ := filepath.Abs(".")
 	packageName := util.GetPackageName(currentDir)
 	tpl := fmt.Sprintf(`package %s
 

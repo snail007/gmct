@@ -73,9 +73,7 @@ type Newx struct {
 }
 
 func NewX() *Newx {
-	return &Newx{
-
-	}
+	return &Newx{}
 }
 
 func (s *Newx) init(args0 interface{}) (err error) {
@@ -203,7 +201,7 @@ func (s *Newx) decompress() (err error) {
 	if err == nil && *s.cfg.SubName == "admin" {
 		root := filepath.Dir(s.dest)
 		dstDirname := filepath.Base(s.dest)
-		fs, err := filepath.Glob(s.dest+"/*")
+		fs, err := filepath.Glob(s.dest + "/*")
 		if err != nil {
 			return err
 		}

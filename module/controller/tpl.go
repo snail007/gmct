@@ -1,7 +1,7 @@
 package controller
 
 var (
-	tpl= `package %s
+	tpl = `package %s
 
 import (
 	"github.com/snail007/gmc"

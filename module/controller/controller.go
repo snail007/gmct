@@ -37,8 +37,7 @@ type Controller struct {
 }
 
 func NewController() *Controller {
-	return &Controller{
-	}
+	return &Controller{}
 }
 
 func (s *Controller) init(args0 interface{}) (err error) {

@@ -37,8 +37,7 @@ type Model struct {
 }
 
 func NewModel() *Model {
-	return &Model{
-	}
+	return &Model{}
 }
 
 func (s *Model) init(args0 interface{}) (err error) {

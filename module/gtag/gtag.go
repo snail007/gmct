@@ -9,14 +9,12 @@ import (
 )
 
 type GTagArgs struct {
-	GTagName *string
-	SubName  *string
+	SubName *string
 }
 
 func NewGTagArgs() GTagArgs {
 	return GTagArgs{
-		GTagName: new(string),
-		SubName:  new(string),
+		SubName: new(string),
 	}
 }
 
@@ -26,8 +24,7 @@ type GTag struct {
 }
 
 func NewGTag() *GTag {
-	return &GTag{
-	}
+	return &GTag{}
 }
 
 func (s *GTag) init(args0 interface{}) (err error) {

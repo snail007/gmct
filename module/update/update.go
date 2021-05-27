@@ -42,8 +42,7 @@ type Update struct {
 }
 
 func NewUpdate() *Update {
-	return &Update{
-	}
+	return &Update{}
 }
 
 func (s *Update) init(args0 interface{}) (err error) {
@@ -168,8 +167,8 @@ func (s *Update) Start(args interface{}) (err error) {
 	newFile := filepath.Join(tmpPath, "gmct"+ext)
 
 	fileNew, _ := os.Open(newFile)
-	fileNewTmpPath:=binPath + ".tmp"
-	fileNewTmp, err := os.OpenFile(fileNewTmpPath,os.O_CREATE|os.O_WRONLY,0755)
+	fileNewTmpPath := binPath + ".tmp"
+	fileNewTmp, err := os.OpenFile(fileNewTmpPath, os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		return fmt.Errorf("create temp target fail, %s", err)
 		return err
@@ -180,7 +179,7 @@ func (s *Update) Start(args interface{}) (err error) {
 		fileNewTmp.Close()
 	}()
 	// copy update file to bin path as temp file
-	_,err=io.Copy(fileNewTmp, fileNew)
+	_, err = io.Copy(fileNewTmp, fileNew)
 	if err != nil {
 		return fmt.Errorf("wirte temp target fail, %s", err)
 		return err

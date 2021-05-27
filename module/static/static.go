@@ -109,7 +109,7 @@ func (s *Static) pack() (err error) {
 		str := base64.StdEncoding.EncodeToString(b)
 		buf.WriteString(fmt.Sprintf("\t\t\"%s\" : \"%s\",\n", v, str))
 	}
-	currentDir,_:=filepath.Abs(".")
+	currentDir, _ := filepath.Abs(".")
 	packageName := util.GetPackageName(currentDir)
 	file := fmt.Sprintf(`package %s
 

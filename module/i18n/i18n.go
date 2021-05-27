@@ -25,13 +25,13 @@ type I18nArgs struct {
 }
 
 func NewI18nArgs() I18nArgs {
-	in:= I18nArgs{
+	in := I18nArgs{
 		Dir:       new(string),
 		Extension: new(string),
 		Clean:     new(bool),
 		SubName:   new(string),
 	}
-	*in.Extension=".toml"
+	*in.Extension = ".toml"
 	return in
 }
 
@@ -107,7 +107,7 @@ func (s *I18n) pack() (err error) {
 		str := base64.StdEncoding.EncodeToString(b)
 		buf.WriteString(fmt.Sprintf("\t\t\"%s\" : \"%s\",\n", strings.TrimSuffix(v, *s.args.Extension), str))
 	}
-	currentDir,_:=filepath.Abs(".")
+	currentDir, _ := filepath.Abs(".")
 	packageName := util.GetPackageName(currentDir)
 	i18n := fmt.Sprintf(`package %s
 

@@ -20,7 +20,7 @@ func TestGetPackageName(t *testing.T) {
 
 `
 	os.RemoveAll(".utils_test")
-	os.MkdirAll(".utils_test/none",0755)
+	os.MkdirAll(".utils_test/none", 0755)
 	ioutil.WriteFile(".utils_test/str.go", []byte(str), 0755)
 	ioutil.WriteFile(".utils_test/str_test.go", []byte(str1), 0755)
 	ioutil.WriteFile(".utils_test/str_test.txt", []byte(str1), 0755)

@@ -16,7 +16,7 @@ type GMCTool interface {
 
 func init() {
 	// catch arguments after --
-	if len(os.Args)>2{
+	if len(os.Args) > 2 {
 		for i, v := range os.Args {
 			if v == "--" {
 				if len(os.Args) > i+1 {

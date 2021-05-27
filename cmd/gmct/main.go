@@ -5,6 +5,7 @@ import (
 	"github.com/snail007/gmct/module/controller"
 	"github.com/snail007/gmct/module/cover"
 	"github.com/snail007/gmct/module/docker"
+	gotool "github.com/snail007/gmct/module/go"
 	"github.com/snail007/gmct/module/gtag"
 	"github.com/snail007/gmct/module/i18n"
 	"github.com/snail007/gmct/module/model"
@@ -60,6 +61,7 @@ func main() {
 	toolArgs := toolx.NewToolArgs()
 	sshArgs := ssht.NewSshArgs()
 	updateArgs := update.NewUpdateArgs()
+	goToolArgs := gotool.NewGoToolArgs()
 	//all subtool defined here
 
 	// #2
@@ -166,6 +168,15 @@ func main() {
 	updateCMD := gmctApp.Command("update", "update gmct to the latest version")
 	updateArgs.Force = updateCMD.Flag("force", "force update").Default("false").Short('f').Bool()
 
+	// sub tool gotool
+	goToolCMD := gmctApp.Command("go", "go development toolkit")
+	gotoolLintCMD := goToolCMD.Command("lint", "print go code issues are found")
+	_ = gotoolLintCMD
+	goToolFmtCMD := goToolCMD.Command("fmt", "format code in go files")
+	_ = goToolFmtCMD
+	goToolCheckCMD := goToolCMD.Command("check", "combine of lint and fmt")
+	_ = goToolCheckCMD
+
 	//check command line args
 	if len(os.Args) == 0 {
 		os.Args = []string{""}
@@ -246,6 +257,10 @@ func main() {
 	case "update":
 		args = updateArgs
 		gmcToolObj = update.NewUpdate()
+	case "go":
+		goToolArgs.SubName = &subToolSubName
+		args = goToolArgs
+		gmcToolObj = gotool.NewGoTool()
 	default:
 		fmt.Printf("sub command '%s' not found\n", subToolName)
 		return

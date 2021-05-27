@@ -30,8 +30,7 @@ type View struct {
 }
 
 func NewView() *View {
-	return &View{
-	}
+	return &View{}
 }
 
 func (s *View) init(args0 interface{}) (err error) {

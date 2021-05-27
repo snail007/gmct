@@ -42,8 +42,7 @@ type Tool struct {
 }
 
 func NewTool() *Tool {
-	return &Tool{
-	}
+	return &Tool{}
 }
 
 func (s *Tool) init(args0 interface{}) (err error) {

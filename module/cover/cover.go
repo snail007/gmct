@@ -35,8 +35,7 @@ type Cover struct {
 }
 
 func NewCover() *Cover {
-	return &Cover{
-	}
+	return &Cover{}
 }
 
 func (s *Cover) init(args0 interface{}) (err error) {

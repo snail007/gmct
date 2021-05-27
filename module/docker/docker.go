@@ -43,8 +43,7 @@ type Docker struct {
 }
 
 func NewDocker() *Docker {
-	return &Docker{
-	}
+	return &Docker{}
 }
 
 func (s *Docker) init(args0 interface{}) (err error) {
