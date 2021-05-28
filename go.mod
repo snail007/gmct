@@ -1,6 +1,6 @@
 module github.com/snail007/gmct
 
-go 1.12
+go 1.16
 
 require (
 	github.com/schollz/progressbar/v3 v3.8.1

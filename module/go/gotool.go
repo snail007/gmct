@@ -5,6 +5,7 @@ import (
 	glog "github.com/snail007/gmc/module/log"
 	ghttp "github.com/snail007/gmc/util/http"
 	gmap "github.com/snail007/gmc/util/map"
+	goinstall "github.com/snail007/gmct/scripts/go/install"
 	"github.com/snail007/gmct/tool"
 	"os"
 	"os/exec"
@@ -121,25 +122,31 @@ func (s *GoTool) install(pkg string) (err error) {
 	}
 	cmd := ""
 	if !strings.Contains(installPkg, "/") {
-		// the short name not found locally, try fetch from https://github.com/snail007/gmct/
-		glog.Infof("[ %s ] not found locally, fetch from snail007/gmct ...", installPkg)
-		u := "https://github.host900.com/snail007/gmct/raw/master/scripts/go/install/" + installPkg + ".sh"
-		c := ghttp.NewHTTPClient()
-		c.SetDNS("8.8.8.8:53")
-		b, code, _, e := c.Get(u, time.Second*30, nil)
-		if code != 200 {
-			m := ""
-			if e != nil {
-				m = ", error: " + e.Error()
+		// installPkg is short name.
+		// find short name in goscripts.Scripts
+		if v := goinstall.Scripts[installPkg]; v != "" {
+			cmd = v
+		} else {
+			// the short name not found locally, try fetch from https://github.com/snail007/gmct/
+			glog.Infof("[ %s ] not found locally, fetch from snail007/gmct ...", installPkg)
+			u := "https://github.host900.com/snail007/gmct/raw/master/scripts/go/install/" + installPkg + ".sh"
+			c := ghttp.NewHTTPClient()
+			c.SetDNS("8.8.8.8:53")
+			b, code, _, e := c.Get(u, time.Second*30, nil)
+			if code != 200 {
+				m := ""
+				if e != nil {
+					m = ", error: " + e.Error()
+				}
+				return fmt.Errorf("request fail, code: %d%s", code, m)
 			}
-			return fmt.Errorf("request fail, code: %d%s", code, m)
+			cmd = string(b)
 		}
-		cmd = string(b)
 	}
 	if cmd == "" {
 		cmd = `go get -u ` + installPkg
 	}
-	cmd = s.exportString() + cmd
+	cmd = "export ACTION=install;" + s.exportString() + cmd
 	glog.Info("Install >>> " + strings.SplitN(installPkg, ";", 2)[0])
 	b, err := exec.Command("bash", "-c", cmd).CombinedOutput()
 	if err != nil {
@@ -174,7 +181,7 @@ func (s *GoTool) exportString() string {
 		}
 		export = append(export, "export "+v)
 	}
-	return strings.Join(export, ";") + ";"
+	return strings.Join(export, ";") + ";\n"
 }
 
 func CmdList() []string {

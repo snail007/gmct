@@ -188,6 +188,8 @@ func main() {
 
 	// sub tool install
 	gmctApp.Command("install", "install toolkit")
+	gmctApp.Command("install-force", "install toolkit")
+	gmctApp.Command("uninstall", "uninstall staff installed by install toolkit")
 
 	//check command line args
 	if len(os.Args) == 0 {
@@ -273,7 +275,8 @@ func main() {
 		goToolArgs.SubName = &subToolSubName
 		args = goToolArgs
 		gmcToolObj = gotool.NewGoTool()
-	case "install":
+	case "install", "install-force", "uninstall":
+		installToolArgs.Action = subToolName
 		args = installToolArgs
 		gmcToolObj = installtool.NewInstallTool()
 	default:
