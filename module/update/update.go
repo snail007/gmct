@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 	glog "github.com/snail007/gmc/module/log"
 	gcompress "github.com/snail007/gmc/util/compress"
+	gfile "github.com/snail007/gmc/util/file"
 	ghttp "github.com/snail007/gmc/util/http"
 	grand "github.com/snail007/gmc/util/rand"
 	"github.com/snail007/gmct/tool"
@@ -181,8 +183,15 @@ func (s *Update) Start(args interface{}) (err error) {
 		return fmt.Errorf("wirte temp target fail, %s", err)
 	}
 	// replace old bin file with update file
-	err = os.Rename(fileNewTmpPath, binPath)
-	os.Chmod(binPath, 0755)
+	if runtime.GOOS == "windows" {
+		os.Chdir(filepath.Dir(binPath))
+		c := fmt.Sprintf("/C ping 1.1.1.1 -n 1 -w 3000 > Nul & Del %s & ren %s %s",
+			binPath, gfile.BaseName(fileNewTmpPath), gfile.BaseName(binPath))
+		err = exec.Command("cmd.exe", c).Start()
+	} else {
+		err = os.Rename(fileNewTmpPath, binPath)
+		os.Chmod(binPath, 0755)
+	}
 	glog.Info("done!")
 	return
 }
