@@ -4,18 +4,19 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/schollz/progressbar/v3"
-	glog "github.com/snail007/gmc/module/log"
-	gcompress "github.com/snail007/gmc/util/compress"
-	ghttp "github.com/snail007/gmc/util/http"
-	grand "github.com/snail007/gmc/util/rand"
-	"github.com/snail007/gmct/tool"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/schollz/progressbar/v3"
+	glog "github.com/snail007/gmc/module/log"
+	gcompress "github.com/snail007/gmc/util/compress"
+	ghttp "github.com/snail007/gmc/util/http"
+	grand "github.com/snail007/gmc/util/rand"
+	"github.com/snail007/gmct/tool"
 )
 
 const updateAPIURL = "https://mirrors.host900.com/https://api.github.com/repos/snail007/gmct/releases/latest"
@@ -80,7 +81,7 @@ func (s *Update) Start(args interface{}) (err error) {
 
 	// confirm
 	if !*s.args.Force {
-		fmt.Printf("Confirm update to v%s [y/N]:", newVersion)
+		fmt.Printf("Current version is: v%s\nConfirm update to v%s [y/N]:", currentVersion, newVersion)
 		r := bufio.NewReader(os.Stdin)
 		str, _ := r.ReadString('\n')
 		if strings.ToLower(strings.Trim(str, " \n\t")) != "y" {
