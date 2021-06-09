@@ -62,8 +62,8 @@ func (s *GoTool) Start(args interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	lintCmd := `golint ./... | grep -v "receiver name should be a reflection of its identity" | grep -v "should have comment"| grep -v "don't use underscores in Go names"`
-	vetCmd := `go vet ./... 2>&1 | grep -v "should have signature"`
+	lintCmd := `golint ./... | grep -v "vendor/" | grep -v "receiver name should be a reflection of its identity" | grep -v "should have comment"| grep -v "don't use underscores in Go names"`
+	vetCmd := `go vet ./... 2>&1 | grep -v "vendor/" | grep -v "should have signature"`
 	fmtCmd := `gofmt -s -w ./`
 	switch *s.args.SubName {
 	case "lint", "check":
