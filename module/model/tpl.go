@@ -29,7 +29,7 @@ func New{{TABLE_STRUCT_NAME}}Model() *{{TABLE_STRUCT_NAME}}Model {
 	return u
 }
 
-func (s *UserLogModel) DB() gcore.Database {
+func (s *{{TABLE_STRUCT_NAME}}) DB() gcore.Database {
 	if s.db == nil {
 		s.once.Do(func() {
 			s.db = gmc.DB.DB()
