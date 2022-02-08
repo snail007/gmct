@@ -2,9 +2,6 @@ package ssht
 
 import (
 	"fmt"
-	"github.com/snail007/gmct/tool"
-	"golang.org/x/crypto/ssh"
-	"gopkg.in/cheggaaa/pb.v1"
 	"io"
 	"io/ioutil"
 	"net"
@@ -13,6 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	gproxy "github.com/snail007/gmc/util/proxy"
+	"github.com/snail007/gmct/tool"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/net/http/httpproxy"
+	"gopkg.in/cheggaaa/pb.v1"
 )
 
 type SshArgs struct {
@@ -198,6 +201,28 @@ func (s *Ssh) client() (client *ssh.Client, err error) {
 			return nil
 		},
 	}
-	client, err = ssh.Dial("tcp", s.args.SshURL.Host, cfg)
+	proxy := httpproxy.FromEnvironment().HTTPProxy
+	if proxy != "" {
+		var j *gproxy.Jumper
+		j, err = gproxy.NewJumper(proxy, cfg.Timeout)
+		if err != nil {
+			return nil, err
+		}
+		var conn net.Conn
+		conn, err = j.Dial(s.args.SshURL.Host)
+		if err != nil {
+			return nil, err
+		}
+		var c ssh.Conn
+		var chans <-chan ssh.NewChannel
+		var reqs <-chan *ssh.Request
+		c, chans, reqs, err = ssh.NewClientConn(conn, s.args.SshURL.Host, cfg)
+		if err != nil {
+			return nil, err
+		}
+		return ssh.NewClient(c, chans, reqs), nil
+	} else {
+		client, err = ssh.Dial("tcp", s.args.SshURL.Host, cfg)
+	}
 	return
 }
