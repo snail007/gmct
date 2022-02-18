@@ -203,7 +203,7 @@ func main() {
 	//tls save
 	tlsSaveCMD := tlsToolCMD.Command("save", "save tls target host:port certificate to file")
 	tlsToolArgs.SaveAddr = tlsSaveCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()
-	tlsToolArgs.SaveName = tlsSaveCMD.Flag("name", "save certificate file name").Short('n').Default("").String()
+	tlsToolArgs.SaveName = tlsSaveCMD.Flag("name", "save certificate folder name").Short('n').Default("").String()
 
 	//check command line args
 	if len(os.Args) == 0 {

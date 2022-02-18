@@ -6,9 +6,10 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	glog "github.com/snail007/gmc/module/log"
 	gfile "github.com/snail007/gmc/util/file"
 	"github.com/snail007/gmct/tool"
@@ -81,15 +82,33 @@ func (s *TLS) info() {
 		}
 		fmt.Println(info.String())
 	} else if *s.args.File != "" {
-		bs, err := x509.ParseCertificates(gfile.Bytes(*s.args.File))
+		if !gfile.Exists(*s.args.File) {
+			glog.Errorf("file not found: %s", *s.args.File)
+		}
+
+		var blocks []byte
+		rest := gfile.Bytes(*s.args.File)
+		for {
+			var block *pem.Block
+			block, rest = pem.Decode(rest)
+			if block == nil {
+				glog.Error("Error: PEM not parsed")
+				break
+			}
+			blocks = append(blocks, block.Bytes...)
+			if len(rest) == 0 {
+				break
+			}
+		}
+		bs, err := x509.ParseCertificates(blocks)
 		if err != nil {
-			glog.Error(errors.Wrap(err, "ParseCertificates"))
+			fmt.Printf("Error: %s\n", err)
 			return
 		}
+
 		peerCerts, err := parseCerts(bs)
 		if err != nil {
 			glog.Error(err)
-			return
 		}
 		fmt.Println(peerCerts)
 	}
@@ -101,16 +120,34 @@ func (s *TLS) save() {
 	buf := bytes.NewBuffer(nil)
 	cn := ""
 	for _, v := range st.PeerCertificates {
-		buf.Write(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: v.Raw}))
 		if !v.IsCA {
 			cn = strings.ReplaceAll(v.Subject.CommonName, "*", "_")
+			break
 		}
 	}
-
-	if *s.args.SaveName == "" {
-		*s.args.SaveName = cn + ".crt"
+	if cn == "" {
+		glog.Error("CommonName is null")
 	}
-	gfile.Write(*s.args.SaveName, buf.Bytes(), false)
+
+	folderName := *s.args.SaveName
+	if folderName == "" {
+		folderName = cn
+	}
+	os.Mkdir(folderName, 0755)
+
+	for i, v := range st.PeerCertificates {
+		pemTxt := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: v.Raw})
+		buf.Write(pemTxt)
+		n := ""
+		if !v.IsCA {
+			n = strings.ReplaceAll(v.Subject.CommonName, "*", "_")
+		} else {
+			n = "ca-" + fmt.Sprintf("%d", i)
+		}
+		gfile.Write(filepath.Join(folderName, n+".crt"), pemTxt, false)
+	}
+	gfile.Write(filepath.Join(folderName, "all.crt"), buf.Bytes(), false)
+	glog.Info("SUCCESS!")
 	return
 }
 
