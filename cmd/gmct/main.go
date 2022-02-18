@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	gcore "github.com/snail007/gmc/core"
 	glog "github.com/snail007/gmc/module/log"
 	"github.com/snail007/gmct/module/controller"
@@ -15,11 +18,10 @@ import (
 	newx "github.com/snail007/gmct/module/new"
 	"github.com/snail007/gmct/module/run"
 	ssht "github.com/snail007/gmct/module/ssh"
+	tlstool "github.com/snail007/gmct/module/tls"
 	toolx "github.com/snail007/gmct/module/tool"
 	"github.com/snail007/gmct/module/update"
 	"github.com/snail007/gmct/module/view"
-	"os"
-	"strings"
 
 	"github.com/snail007/gmct/module/static"
 
@@ -67,6 +69,7 @@ func main() {
 	updateArgs := update.NewUpdateArgs()
 	goToolArgs := gotool.NewGoToolArgs()
 	installToolArgs := installtool.NewInstallToolArgs()
+	tlsToolArgs := tlstool.NewTLSArgs()
 	//all subtool defined here
 
 	// #2
@@ -191,6 +194,17 @@ func main() {
 	gmctApp.Command("install-force", "install toolkit")
 	gmctApp.Command("uninstall", "uninstall staff installed by install toolkit")
 
+	// sub tool tls
+	tlsToolCMD := gmctApp.Command("tls", "tls certificate toolkit")
+	//tls info
+	tlsInfoCMD := tlsToolCMD.Command("info", "print cert file or tls target host:port certificate info")
+	tlsToolArgs.InfoAddr = tlsInfoCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()
+	tlsToolArgs.File = tlsInfoCMD.Flag("file", "path of tls certificate file").Short('f').Default("").String()
+	//tls save
+	tlsSaveCMD := tlsToolCMD.Command("save", "save tls target host:port certificate to file")
+	tlsToolArgs.SaveAddr = tlsSaveCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()
+	tlsToolArgs.SaveName = tlsSaveCMD.Flag("name", "save certificate file name").Short('n').Default("").String()
+
 	//check command line args
 	if len(os.Args) == 0 {
 		os.Args = []string{""}
@@ -279,6 +293,10 @@ func main() {
 		installToolArgs.Action = subToolName
 		args = installToolArgs
 		gmcToolObj = installtool.NewInstallTool()
+	case "tls":
+		tlsToolArgs.SubName = &subToolSubName
+		args = tlsToolArgs
+		gmcToolObj = tlstool.NewTLS()
 	default:
 		fmt.Printf("sub command '%s' not found\n", subToolName)
 		return

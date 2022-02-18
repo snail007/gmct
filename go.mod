@@ -3,6 +3,7 @@ module github.com/snail007/gmct
 go 1.16
 
 require (
+	github.com/pkg/errors v0.8.1
 	github.com/schollz/progressbar/v3 v3.8.1
 	github.com/snail007/gmc v0.0.0-20220206102326-e2eed32fb62d
 	github.com/stretchr/testify v1.3.0
