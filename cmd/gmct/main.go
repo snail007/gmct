@@ -200,6 +200,7 @@ func main() {
 	tlsInfoCMD := tlsToolCMD.Command("info", "print cert file or tls target host:port certificate info")
 	tlsToolArgs.InfoAddr = tlsInfoCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()
 	tlsToolArgs.File = tlsInfoCMD.Flag("file", "path of tls certificate file").Short('f').Default("").String()
+	tlsToolArgs.InfoServerName = tlsInfoCMD.Flag("servername", "the server name sent to tls server").Short('s').Default("").String()
 	//tls save
 	tlsSaveCMD := tlsToolCMD.Command("save", "save tls target host:port certificate to file")
 	tlsToolArgs.SaveAddr = tlsSaveCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()

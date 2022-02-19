@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,12 +17,13 @@ import (
 )
 
 type TLSArgs struct {
-	InfoAddr *string
-	SaveAddr *string
-	SaveName *string
-	File     *string
-	TLSName  *string
-	SubName  *string
+	InfoAddr       *string
+	InfoServerName *string
+	SaveAddr       *string
+	SaveName       *string
+	File           *string
+	TLSName        *string
+	SubName        *string
 }
 
 func NewTLSArgs() TLSArgs {
@@ -47,6 +49,10 @@ func (s *TLS) init(args0 interface{}) (err error) {
 	case "info":
 		if *s.args.InfoAddr != "" && !strings.Contains(*s.args.InfoAddr, ":") {
 			*s.args.InfoAddr += ":443"
+		}
+		h, _, _ := net.SplitHostPort(*s.args.InfoAddr)
+		if *s.args.InfoServerName == "" {
+			*s.args.InfoServerName = h
 		}
 	case "save":
 		if *s.args.SaveAddr != "" && !strings.Contains(*s.args.SaveAddr, ":") {
@@ -151,13 +157,27 @@ func (s *TLS) save() {
 	return
 }
 
-func (s *TLS) getConnectionState(addr string) tls.ConnectionState {
+func (s *TLS) getConnectionState(addr string) statusWrapper {
+	requireClientCert := false
 	conn, err := tls.Dial("tcp", addr, &tls.Config{
+		ServerName:         *s.args.InfoServerName,
 		InsecureSkipVerify: true,
+		GetClientCertificate: func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			requireClientCert = true
+			return &tls.Certificate{}, nil
+		},
 	})
 	if err != nil {
 		glog.Error(err)
 	}
 	defer conn.Close()
-	return conn.ConnectionState()
+	return statusWrapper{
+		ConnectionState:   conn.ConnectionState(),
+		requireClientCert: requireClientCert,
+	}
+}
+
+type statusWrapper struct {
+	tls.ConnectionState
+	requireClientCert bool
 }
