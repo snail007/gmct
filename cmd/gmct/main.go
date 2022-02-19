@@ -198,13 +198,16 @@ func main() {
 	tlsToolCMD := gmctApp.Command("tls", "tls certificate toolkit")
 	//tls info
 	tlsInfoCMD := tlsToolCMD.Command("info", "print cert file or tls target host:port certificate info")
-	tlsToolArgs.InfoAddr = tlsInfoCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()
-	tlsToolArgs.File = tlsInfoCMD.Flag("file", "path of tls certificate file").Short('f').Default("").String()
-	tlsToolArgs.InfoServerName = tlsInfoCMD.Flag("servername", "the server name sent to tls server").Short('s').Default("").String()
+	tlsToolArgs.Info.Proxy = tlsInfoCMD.Flag("proxy", "proxy URL connect to address of tls target, example: http://127.0.0.1:8080").Short('p').Default("").String()
+	tlsToolArgs.Info.Addr = tlsInfoCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()
+	tlsToolArgs.Info.File = tlsInfoCMD.Flag("file", "path of tls certificate file").Short('f').Default("").String()
+	tlsToolArgs.Info.ServerName = tlsInfoCMD.Flag("servername", "the server name sent to tls server").Short('s').Default("").String()
 	//tls save
 	tlsSaveCMD := tlsToolCMD.Command("save", "save tls target host:port certificate to file")
-	tlsToolArgs.SaveAddr = tlsSaveCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()
-	tlsToolArgs.SaveName = tlsSaveCMD.Flag("name", "save certificate folder name").Short('n').Default("").String()
+	tlsToolArgs.Save.Addr = tlsSaveCMD.Flag("addr", "address of tls target, ip:port").Short('a').Default("").String()
+	tlsToolArgs.Save.Proxy = tlsSaveCMD.Flag("proxy", "proxy URL connect to address of tls target, example: http://127.0.0.1:8080").Short('p').Default("").String()
+	tlsToolArgs.Save.ServerName = tlsSaveCMD.Flag("servername", "the server name sent to tls server").Short('s').Default("").String()
+	tlsToolArgs.Save.FolderName = tlsSaveCMD.Flag("name", "save certificate folder name").Short('n').Default("").String()
 
 	//check command line args
 	if len(os.Args) == 0 {

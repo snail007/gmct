@@ -6,36 +6,52 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/pkg/errors"
+	gproxy "github.com/snail007/gmc/util/proxy"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	glog "github.com/snail007/gmc/module/log"
 	gfile "github.com/snail007/gmc/util/file"
 	"github.com/snail007/gmct/tool"
 )
 
+type SaveArgs struct {
+	Addr       *string
+	Proxy      *string
+	ServerName *string
+	FolderName *string
+}
+
+type InfoArgs struct {
+	Addr       *string
+	Proxy      *string
+	ServerName *string
+	File       *string
+}
+
 type TLSArgs struct {
-	InfoAddr       *string
-	InfoServerName *string
-	SaveAddr       *string
-	SaveName       *string
-	File           *string
-	TLSName        *string
-	SubName        *string
+	Save    *SaveArgs
+	Info    *InfoArgs
+	SubName *string
 }
 
 func NewTLSArgs() TLSArgs {
 	return TLSArgs{
-		TLSName: new(string),
+		Save:    new(SaveArgs),
+		Info:    new(InfoArgs),
 		SubName: new(string),
 	}
 }
 
 type TLS struct {
 	tool.GMCTool
-	args TLSArgs
+	cfg     TLSArgs
+	timeout time.Duration
+	jumper  *gproxy.Jumper
 }
 
 func NewTLS() *TLS {
@@ -43,23 +59,32 @@ func NewTLS() *TLS {
 }
 
 func (s *TLS) init(args0 interface{}) (err error) {
-	s.args = args0.(TLSArgs)
-
-	switch *s.args.SubName {
+	s.cfg = args0.(TLSArgs)
+	s.timeout = time.Second * 15
+	proxy := ""
+	switch *s.cfg.SubName {
 	case "info":
-		if *s.args.InfoAddr != "" && !strings.Contains(*s.args.InfoAddr, ":") {
-			*s.args.InfoAddr += ":443"
+		proxy = *s.cfg.Info.Proxy
+		if *s.cfg.Info.Addr != "" && !strings.Contains(*s.cfg.Info.Addr, ":") {
+			*s.cfg.Info.Addr += ":443"
 		}
-		h, _, _ := net.SplitHostPort(*s.args.InfoAddr)
-		if *s.args.InfoServerName == "" {
-			*s.args.InfoServerName = h
+		h, _, _ := net.SplitHostPort(*s.cfg.Info.Addr)
+		if *s.cfg.Info.ServerName == "" {
+			*s.cfg.Info.ServerName = h
 		}
 	case "save":
-		if *s.args.SaveAddr != "" && !strings.Contains(*s.args.SaveAddr, ":") {
-			*s.args.SaveAddr += ":443"
+		proxy = *s.cfg.Save.Proxy
+		if *s.cfg.Save.Addr != "" && !strings.Contains(*s.cfg.Save.Addr, ":") {
+			*s.cfg.Save.Addr += ":443"
 		}
 	}
-
+	if proxy != "" {
+		var err error
+		s.jumper, err = gproxy.NewJumper(proxy, s.timeout)
+		if err != nil {
+			glog.Error(err)
+		}
+	}
 	return
 }
 
@@ -68,7 +93,7 @@ func (s *TLS) Start(args interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	switch *s.args.SubName {
+	switch *s.cfg.SubName {
 	case "info":
 		s.info()
 	case "save":
@@ -81,19 +106,18 @@ func (s *TLS) Stop() {
 	return
 }
 func (s *TLS) info() {
-	if *s.args.InfoAddr != "" {
-		info, err := getTLSInfo(s.getConnectionState(*s.args.InfoAddr))
+	if *s.cfg.Info.Addr != "" {
+		info, err := getTLSInfo(s.getConnectionState(*s.cfg.Info.Addr))
 		if err != nil {
 			glog.Error(err)
 		}
 		fmt.Println(info.String())
-	} else if *s.args.File != "" {
-		if !gfile.Exists(*s.args.File) {
-			glog.Errorf("file not found: %s", *s.args.File)
+	} else if *s.cfg.Info.File != "" {
+		if !gfile.Exists(*s.cfg.Info.File) {
+			glog.Errorf("file not found: %s", *s.cfg.Info.File)
 		}
-
 		var blocks []byte
-		rest := gfile.Bytes(*s.args.File)
+		rest := gfile.Bytes(*s.cfg.Info.File)
 		for {
 			var block *pem.Block
 			block, rest = pem.Decode(rest)
@@ -122,7 +146,7 @@ func (s *TLS) info() {
 	return
 }
 func (s *TLS) save() {
-	st := s.getConnectionState(*s.args.SaveAddr)
+	st := s.getConnectionState(*s.cfg.Save.Addr)
 	buf := bytes.NewBuffer(nil)
 	cn := ""
 	for _, v := range st.PeerCertificates {
@@ -135,7 +159,7 @@ func (s *TLS) save() {
 		glog.Error("CommonName is null")
 	}
 
-	folderName := *s.args.SaveName
+	folderName := *s.cfg.Save.FolderName
 	if folderName == "" {
 		folderName = cn
 	}
@@ -159,20 +183,32 @@ func (s *TLS) save() {
 
 func (s *TLS) getConnectionState(addr string) statusWrapper {
 	requireClientCert := false
-	conn, err := tls.Dial("tcp", addr, &tls.Config{
-		ServerName:         *s.args.InfoServerName,
+	cfg := &tls.Config{
+		ServerName:         *s.cfg.Info.ServerName,
 		InsecureSkipVerify: true,
 		GetClientCertificate: func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
 			requireClientCert = true
 			return &tls.Certificate{}, nil
 		},
-	})
-	if err != nil {
-		glog.Error(err)
 	}
-	defer conn.Close()
+	var tcpConn net.Conn
+	var err error
+	if s.jumper != nil {
+		tcpConn, err = s.jumper.Dial(addr)
+	} else {
+		tcpConn, err = net.DialTimeout("tcp", addr, s.timeout)
+	}
+	if err != nil {
+		glog.Error(errors.Wrap(err, "dial tcp fail"))
+	}
+	defer tcpConn.Close()
+	tlsConn := tls.Client(tcpConn, cfg)
+	err = tlsConn.Handshake()
+	if err != nil {
+		glog.Error(errors.Wrap(err, "tls handshake fail, maybe not a tls server?"))
+	}
 	return statusWrapper{
-		ConnectionState:   conn.ConnectionState(),
+		ConnectionState:   tlsConn.ConnectionState(),
 		requireClientCert: requireClientCert,
 	}
 }

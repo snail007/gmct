@@ -252,5 +252,5 @@ func extKeyUsage(cs []x509.ExtKeyUsage) string {
 	for _, v := range cs {
 		defaultU += " ," + fmt.Sprintf("%d", v)
 	}
-	return fmt.Sprintf("%d", defaultU)
+	return fmt.Sprintf("%s", defaultU)
 }
