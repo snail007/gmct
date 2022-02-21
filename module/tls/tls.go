@@ -6,13 +6,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/pkg/errors"
-	gproxy "github.com/snail007/gmc/util/proxy"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	gproxy "github.com/snail007/gmc/util/proxy"
 
 	glog "github.com/snail007/gmc/module/log"
 	gfile "github.com/snail007/gmc/util/file"
@@ -77,6 +78,10 @@ func (s *TLS) init(args0 interface{}) (err error) {
 		if *s.cfg.Save.Addr != "" && !strings.Contains(*s.cfg.Save.Addr, ":") {
 			*s.cfg.Save.Addr += ":443"
 		}
+		h, _, _ := net.SplitHostPort(*s.cfg.Save.Addr)
+		if *s.cfg.Save.ServerName == "" {
+			*s.cfg.Save.ServerName = h
+		}
 	}
 	if proxy != "" {
 		var err error
@@ -107,7 +112,7 @@ func (s *TLS) Stop() {
 }
 func (s *TLS) info() {
 	if *s.cfg.Info.Addr != "" {
-		info, err := getTLSInfo(s.getConnectionState(*s.cfg.Info.Addr))
+		info, err := getTLSInfo(s.getConnectionState(*s.cfg.Info.Addr, *s.cfg.Info.ServerName))
 		if err != nil {
 			glog.Error(err)
 		}
@@ -146,22 +151,11 @@ func (s *TLS) info() {
 	return
 }
 func (s *TLS) save() {
-	st := s.getConnectionState(*s.cfg.Save.Addr)
+	st := s.getConnectionState(*s.cfg.Save.Addr, *s.cfg.Save.ServerName)
 	buf := bytes.NewBuffer(nil)
-	cn := ""
-	for _, v := range st.PeerCertificates {
-		if !v.IsCA {
-			cn = strings.ReplaceAll(v.Subject.CommonName, "*", "_")
-			break
-		}
-	}
-	if cn == "" {
-		glog.Error("CommonName is null")
-	}
-
 	folderName := *s.cfg.Save.FolderName
 	if folderName == "" {
-		folderName = cn
+		folderName = strings.Replace(*s.cfg.Save.Addr, ":", "_", -1)
 	}
 	os.Mkdir(folderName, 0755)
 
@@ -177,14 +171,14 @@ func (s *TLS) save() {
 		gfile.Write(filepath.Join(folderName, n+".crt"), pemTxt, false)
 	}
 	gfile.Write(filepath.Join(folderName, "all.crt"), buf.Bytes(), false)
-	glog.Info("SUCCESS!")
+	glog.Infof("SAVE TO %s SUCCESS!",folderName)
 	return
 }
 
-func (s *TLS) getConnectionState(addr string) statusWrapper {
+func (s *TLS) getConnectionState(addr, serverName string) statusWrapper {
 	requireClientCert := false
 	cfg := &tls.Config{
-		ServerName:         *s.cfg.Info.ServerName,
+		ServerName:         serverName,
 		InsecureSkipVerify: true,
 		GetClientCertificate: func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
 			requireClientCert = true
