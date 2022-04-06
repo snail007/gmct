@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"github.com/snail007/gmct/tool"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/snail007/gmct/tool"
 )
 
 type CoverArgs struct {
@@ -100,17 +101,24 @@ func (s *Cover) Start(args interface{}) (err error) {
 		doneChn = make(chan bool)
 		g.Add(len(packages))
 	}
+	timeout := "15m"
+	if v := os.Getenv("GMCT_TEST_TIMEOUT"); v != "" {
+		timeout = v
+	}
 	coverPkgs := strings.Join(packages, ",")
 	os.Setenv("GMCT_COVER_VERBOSE", fmt.Sprintf("%v", *s.args.Verbose))
 	os.Setenv("GMCT_COVER_RACE", fmt.Sprintf("%v", *s.args.Race))
 	os.Setenv("GMCT_COVER_PACKAGES", coverPkgs)
+	os.Setenv("GMCT_TEST_TIMEOUT", timeout)
+
 	for k, pkg := range packages {
 		b := make([]byte, 16)
 		io.ReadFull(rand.Reader, b)
 		files[k] = filepath.Join(os.TempDir(), fmt.Sprintf("%x", b)) + ".gocc.tmp"
 		w := func(file, pkg string) {
 			workDir := filepath.Join(gopath, "src", pkg)
-			cmd := `go test ` + verbose + ` ` + race + ` -covermode=atomic -coverprofile=` + file +
+			cmd := `go test -timeout ` + timeout + ` ` + verbose + ` ` + race +
+				` -covermode=atomic -coverprofile=` + file +
 				` -coverpkg=` + coverPkgs + ` ` + pkg
 			output, err = s.exec(cmd, workDir)
 			if err != nil {
