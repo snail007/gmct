@@ -3,14 +3,15 @@ package docker
 import (
 	"bufio"
 	"fmt"
-	gfile "github.com/snail007/gmc/util/file"
-	"github.com/snail007/gmct/tool"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+
+	gfile "github.com/snail007/gmc/util/file"
+	"github.com/snail007/gmct/tool"
 )
 
 type DockerArgs struct {
@@ -22,6 +23,7 @@ type DockerArgs struct {
 	Image   *string
 	IsDebug *bool
 	Golang  *bool
+	WorkDir *string
 }
 
 func NewDockerArgs() DockerArgs {
@@ -34,6 +36,7 @@ func NewDockerArgs() DockerArgs {
 		Image:   new(string),
 		IsDebug: new(bool),
 		Golang:  new(bool),
+		WorkDir: new(string),
 	}
 }
 
@@ -95,7 +98,8 @@ func (s *Docker) Start(args interface{}) (err error) {
 	if runtime.GOOS == "linux" {
 		net = "--network=host"
 	}
-	cmdStr := fmt.Sprintf("docker run -t --rm -w /mnt %s %s %s %s %s %s",
+	cmdStr := fmt.Sprintf("docker run -t --rm -w %s %s %s %s %s %s %s",
+		*s.args.WorkDir,
 		net,
 		strings.Join(*s.args.DArg_p, ""),
 		strings.Join(*s.args.DArg_e, ""),

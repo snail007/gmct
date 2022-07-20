@@ -153,6 +153,7 @@ func main() {
 	dockerArgs.DArg_e = dockerCmd.Flag("env", "environment variable").Short('e').Strings()
 	dockerArgs.IsDebug = dockerCmd.Flag("debug", "debug output").Bool()
 	dockerArgs.Golang = dockerCmd.Flag("golang", "sets some golang environment variables").Short('g').Bool()
+	dockerArgs.WorkDir = dockerCmd.Flag("work", "set work dir").Default("/mnt").Short('w').String()
 
 	// subtool tool
 	toolCMD := gmctApp.Command("tool", "gmct tools collection")
