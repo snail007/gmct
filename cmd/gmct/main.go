@@ -160,12 +160,20 @@ func main() {
 
 	toolIPCMD := toolCMD.Command("ip", "ip toolkit")
 	_ = toolIPCMD
-
+	//tool http
 	toolHTTPCMD := toolCMD.Command("http", "simple http server")
-	toolArgs.HTTP.Addr = toolHTTPCMD.Flag("addr", "simple http server listen on").Short('l').Default(":9669").String()
+	toolArgs.HTTP.Addr = toolHTTPCMD.Flag("addr", "simple http server listen on").Short('l').Default(":" + toolx.DefaultPort).String()
 	toolArgs.HTTP.RootDir = toolHTTPCMD.Flag("root", "simple http server root directory").Short('d').Default("./").String()
 	toolArgs.HTTP.Auth = toolHTTPCMD.Flag("auth", "simple http server basic auth username:password, such as : foouser:foopassowrd ").Short('a').Strings()
 	toolArgs.HTTP.Upload = toolHTTPCMD.Flag("upload", "simple http server upload url path, default `random`").Short('u').String()
+	//tool download
+	toolDownloadCMD := toolCMD.Command("download", "download file from gmct simple http server")
+	toolArgs.Download.Net = toolDownloadCMD.Flag("net", "network to scan, format: 192.168.1.0").Short('n').Strings()
+	toolArgs.Download.Port = toolDownloadCMD.Flag("port", "gmct tool http port").Short('p').Strings()
+	toolArgs.Download.File = toolDownloadCMD.Flag("file", "filename to download").Short('f').String()
+	toolArgs.Download.Name = toolDownloadCMD.Flag("name", "rename download file to").Short('m').String()
+	toolArgs.Download.MaxDeepLevel = toolDownloadCMD.Flag("d", "max directory deep level to list server files, value 0: no limit").Default("3").Short('d').Int()
+	toolDownloadCMD.Alias("dl")
 
 	// sub tool ssh
 	toolSsh := gmctApp.Command("ssh", "ssh tool, copy  file to or execute command on remote host")
