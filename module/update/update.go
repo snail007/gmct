@@ -22,7 +22,7 @@ import (
 )
 
 const updateAPIURL = "https://mirrors.host900.com/https://api.github.com/repos/snail007/gmct/releases/latest"
-const downloadURL = "https://mirrors.host900.com/https://github.com/snail007/gmct/releases/download/v%s/gmct-%s-amd64.tar.gz"
+const downloadURL = "https://mirrors.host900.com/https://github.com/snail007/gmct/releases/download/v%s/gmct-%s.tar.gz"
 
 type UpdateArgs struct {
 	UpdateName *string
@@ -71,8 +71,7 @@ func (s *Update) Start(args interface{}) (err error) {
 	newVersion := versionInfo.TagName[1:]
 	newInfo := map[string]Assets{}
 	for _, v := range versionInfo.Assets {
-		arr := strings.Split(v.Name, "-")
-		newInfo[arr[1]] = v
+		newInfo[strings.TrimSuffix(v.Name[5:], ".tar.gz")] = v
 	}
 
 	if newVersion == currentVersion {
@@ -111,19 +110,26 @@ func (s *Update) Start(args interface{}) (err error) {
 	var newAsset Assets
 	ext := ""
 	gzURL := ""
+	k := ""
 	switch runtime.GOOS {
 	case "windows":
-		gzURL = fmt.Sprintf(downloadURL, newVersion, "windows")
-		ext = ".exe"
-		newAsset = newInfo["windows"]
-	case "darwin":
-		gzURL = fmt.Sprintf(downloadURL, newVersion, "mac")
-		newAsset = newInfo["mac"]
-	default:
-		gzURL = fmt.Sprintf(downloadURL, newVersion, "linux")
-		newAsset = newInfo["linux"]
+		k = "windows-amd64"
+ 		ext = ".exe"
+ 	case "darwin":
+		k = "mac-amd64"
+ 	default:
+		switch runtime.GOARCH {
+		case "arm":
+			k = "linux-arm-v5"
+		case "arm64":
+			k = "linux-arm64"
+		default:
+			k = "linux-amd64"
+		}
 	}
-	glog.Info("downloading ...")
+	gzURL = fmt.Sprintf(downloadURL, newVersion, k)
+	newAsset = newInfo[k]
+	glog.Info("downloading ...\n" + gzURL)
 	// create bars
 	bar := progressbar.NewOptions(newAsset.Size,
 		progressbar.OptionSetDescription(newAsset.Name),

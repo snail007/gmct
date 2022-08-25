@@ -52,6 +52,7 @@ type DownloadArgs struct {
 	Name         *string
 	File         *string
 	MaxDeepLevel *int
+	Host         *string
 }
 
 func NewToolArgs() ToolArgs {
@@ -98,15 +99,14 @@ func (s *Tool) download() {
 		glog.Error("download file name required, use option: -f xxx")
 		return
 	}
-	foundFile := s.getFoundFile(s.getServerURL())
-
-	basename := filepath.Base(foundFile)
-	if *s.args.Download.Name != "" {
-		basename = *s.args.Download.Name
+	basename := *s.args.Download.Name
+	if basename != "" && !s.confirmOverwrite(basename) {
+		return
 	}
 
-	if !s.confirmOverwrite(basename) {
-		return
+	foundFile := s.getFoundFile(s.getServerURL())
+	if basename == "" {
+		basename = filepath.Base(foundFile)
 	}
 
 	s.downloadFile(basename, foundFile)
@@ -189,6 +189,13 @@ func (s *Tool) getWebServerList() []string {
 	return gmctWebServerList
 }
 func (s *Tool) getServerURL() string {
+	host := *s.args.Download.Host
+	if host != "" {
+		if !strings.Contains(host, ":") {
+			host = net.JoinHostPort(host, DefaultPort)
+		}
+		return fmt.Sprintf("http://%s/", host)
+	}
 	gmctWebServerList := s.getWebServerList()
 	if len(gmctWebServerList) == 0 {
 		glog.Error("none gmct http server found")
