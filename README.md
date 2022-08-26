@@ -4,12 +4,30 @@
 
 GMCT is toolchain of [GMC](https://github.com/snail007/gmc) golang web framework.
 
-# INSTALL & USER GUIDE
+# USER GUIDE
 
 [Install and User guide](https://snail007.github.io/gmc/#/?id=gmct-tool-chain) ｜ [安装和使用指南](https://snail007.github.io/gmc/zh/#/?id=gmct-%e5%b7%a5%e5%85%b7%e9%93%be)
 
-## INSTALL ON LINUX
+# INSTALL
 
-One KEY, just execute:
+## Linux AMD64
 
-`curl -L https://mirrors.host900.com/https://github.com/snail007/gmct/blob/master/install.sh | bash`
+`bash -c "$(curl -L https://mirrors.host900.com/https://github.com/snail007/gmct/blob/master/install.sh)" @ linux-amd64`
+
+## Linux ARM64
+
+`bash -c "$(curl -L https://mirrors.host900.com/https://github.com/snail007/gmct/blob/master/install.sh)" @ linux-arm64`
+
+## Linux ARM
+
+`bash -c "$(curl -L https://mirrors.host900.com/https://github.com/snail007/gmct/blob/master/install.sh)" @ linux-arm-v5`
+
+## MacOS AMD64
+
+`bash -c "$(curl -L https://mirrors.host900.com/https://github.com/snail007/gmct/blob/master/install.sh)" @ mac-amd64`
+
+## Windows AMD64
+
+Pls download from [Releases](https://github.com/snail007/gmct/releases)
+
+
