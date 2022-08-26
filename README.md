@@ -24,10 +24,10 @@ GMCT is toolchain of [GMC](https://github.com/snail007/gmc) golang web framework
 
 ## MacOS AMD64
 
-Pls download from [Releases](https://github.com/snail007/gmct/releases)
+Pls download `gmct-mac-amd64.tar.gz` from [Releases](https://github.com/snail007/gmct/releases)
 
 ## Windows AMD64
 
-Pls download from [Releases](https://github.com/snail007/gmct/releases)
+Pls download `gmct-windows-amd64.tar.gz` from [Releases](https://github.com/snail007/gmct/releases)
 
 
