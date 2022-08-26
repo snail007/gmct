@@ -15,7 +15,17 @@ echo -e ">>> installing ... \n"
 
 tar zxvf $F >/dev/null 2>&1
 chmod +x gmct
-mv gmct /usr/bin
+
+p="/usr/bin"
+if [ "$(uname)" == "Darwin" ] ;then
+    p="/usr/local/bin"
+    if [ ! -d "$p" ];then
+      mkdir -p "$p"
+    fi
+fi
+
+mv gmct "$p"
+
 rm $F
 gmct --version
 echo  -e "\n>>> install success, thanks for using snail007/gmct\n"
