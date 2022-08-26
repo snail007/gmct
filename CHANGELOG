@@ -1,4 +1,10 @@
 GMCT更新日志
+v0.0.33
+1.新增 tool download 认证支持。
+
+v0.0.32
+1.新增 tool download 可以自动发现 tool http 建立的server，模糊指定文件名，自动匹配文件下载。
+
 v0.0.31
 1.新增docker子命令设置工作目录参数，默认/mnt，用于保存/查看tcp端口或者文件的tls证书信息。
 
