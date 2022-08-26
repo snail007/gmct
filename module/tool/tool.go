@@ -114,6 +114,9 @@ func (s *Tool) download() {
 	foundFile := s.getFoundFile(s.getServerURL())
 	if basename == "" {
 		basename = filepath.Base(foundFile)
+		if !s.confirmOverwrite(basename) {
+			return
+		}
 	}
 
 	s.downloadFile(basename, foundFile)
