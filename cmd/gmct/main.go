@@ -176,7 +176,8 @@ func main() {
 	toolArgs.Download.File = toolDownloadCMD.Flag("file", "filename to download").Short('f').String()
 	toolArgs.Download.Name = toolDownloadCMD.Flag("name", "rename download file to").Short('m').String()
 	toolArgs.Download.MaxDeepLevel = toolDownloadCMD.Flag("deep", "max directory deep level to list server files, value 0: no limit").Default("3").Short('d').Int()
-	toolArgs.Download.Host = toolDownloadCMD.Flag("host", "specify a domain or ip to download, example: 192.168.1.1 or 192.168.1.1:9090 ").Short('h').String()
+	toolArgs.Download.Host = toolDownloadCMD.Flag("host", "specify a domain or ip to download, example: 192.168.1.1 or 192.168.1.1:9090").Short('h').String()
+	toolArgs.Download.Auth = toolDownloadCMD.Flag("auth", "basic auth info, example: username:password").Short('a').String()
 
 	// sub tool ssh
 	toolSsh := gmctApp.Command("ssh", "ssh tool, copy  file to or execute command on remote host")

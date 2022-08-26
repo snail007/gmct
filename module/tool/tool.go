@@ -53,6 +53,8 @@ type DownloadArgs struct {
 	File         *string
 	MaxDeepLevel *int
 	Host         *string
+	Auth         *string
+	client       *ghttp.HTTPClient
 }
 
 func NewToolArgs() ToolArgs {
@@ -98,6 +100,11 @@ func (s *Tool) download() {
 	if *s.args.Download.File == "" {
 		glog.Error("download file name required, use option: -f xxx")
 		return
+	}
+	s.args.Download.client = ghttp.NewHTTPClient()
+	if *s.args.Download.Auth != "" {
+		a := strings.Split(*s.args.Download.Auth, ":")
+		s.args.Download.client.SetBasicAuth(a[0], a[1])
 	}
 	basename := *s.args.Download.Name
 	if basename != "" && !s.confirmOverwrite(basename) {
@@ -165,6 +172,7 @@ func (s *Tool) getScanURLs() []string {
 	}
 	return scanURLArr
 }
+
 func (s *Tool) getWebServerList() []string {
 	scanURLArr := s.getScanURLs()
 	length := len(scanURLArr)
@@ -176,7 +184,7 @@ func (s *Tool) getWebServerList() []string {
 		u := u1
 		pool.Submit(func() {
 			defer g.Done()
-			_, _, resp, e := ghttp.Get(u, time.Second*3, nil)
+			_, _, resp, e := s.args.Download.client.Get(u, time.Second*3, nil)
 			if e != nil {
 				return
 			}
@@ -331,7 +339,7 @@ func (s *Tool) downloadFile(basename, foundFile string) {
 }
 
 func (s *Tool) listFiles(serverURL, path string, files *[]string) {
-	body, _, _, e := ghttp.Get(serverURL+path, time.Second*3, nil)
+	body, _, _, e := s.args.Download.client.Get(serverURL+path, time.Second*3, nil)
 	if e != nil {
 		return
 	}
