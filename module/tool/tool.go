@@ -95,16 +95,21 @@ func (s *Tool) Start(args interface{}) (err error) {
 	}
 	return
 }
-
+func (s *Tool) getBasicAuth() (user, pass string, ok bool) {
+	if *s.args.Download.Auth != "" {
+		a := strings.Split(*s.args.Download.Auth, ":")
+		return a[0], a[1], true
+	}
+	return "", "", false
+}
 func (s *Tool) download() {
 	if *s.args.Download.File == "" {
 		glog.Error("download file name required, use option: -f xxx")
 		return
 	}
 	s.args.Download.client = ghttp.NewHTTPClient()
-	if *s.args.Download.Auth != "" {
-		a := strings.Split(*s.args.Download.Auth, ":")
-		s.args.Download.client.SetBasicAuth(a[0], a[1])
+	if u, p, ok := s.getBasicAuth(); ok {
+		s.args.Download.client.SetBasicAuth(u, p)
 	}
 	basename := *s.args.Download.Name
 	if basename != "" && !s.confirmOverwrite(basename) {
@@ -312,6 +317,9 @@ func (s *Tool) confirmOverwrite(basename string) bool {
 func (s *Tool) downloadFile(basename, foundFile string) {
 	fmt.Println("downloading: " + foundFile)
 	req, _ := http.NewRequest("GET", foundFile, nil)
+	if u, p, ok := s.getBasicAuth(); ok {
+		req.SetBasicAuth(u, p)
+	}
 	resp, e := http.DefaultClient.Do(req)
 	if e != nil {
 		glog.Errorf("download error: %s", e)
