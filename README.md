@@ -24,7 +24,7 @@ GMCT is toolchain of [GMC](https://github.com/snail007/gmc) golang web framework
 
 ## MacOS AMD64
 
-`bash -c "$(curl -L https://mirrors.host900.com/https://github.com/snail007/gmct/blob/master/install.sh)" @ mac-amd64`
+Pls download from [Releases](https://github.com/snail007/gmct/releases)
 
 ## Windows AMD64
 
