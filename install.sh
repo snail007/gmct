@@ -1,5 +1,5 @@
 #!/bin/bash
-F="gmct-linux-amd64.tar.gz"
+F="gmct-$1.tar.gz"
 set -e
 if [ -e /tmp/gmct ]; then
     rm -rf /tmp/gmct
