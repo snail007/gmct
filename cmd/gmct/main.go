@@ -167,16 +167,17 @@ func main() {
 	toolArgs.HTTP.RootDir = toolHTTPCMD.Flag("root", "simple http server root directory").Short('d').Default("./").String()
 	toolArgs.HTTP.Auth = toolHTTPCMD.Flag("auth", "simple http server basic auth username:password, such as : foouser:foopassowrd ").Short('a').Strings()
 	toolArgs.HTTP.Upload = toolHTTPCMD.Flag("upload", "simple http server upload url path, default `random`").Short('u').String()
+	toolArgs.HTTP.ServerID = toolHTTPCMD.Flag("id", "set the server id name, example: server01").Short('i').String()
 
 	//tool download
 	toolDownloadCMD := toolCMD.Command("download", "download file from gmct simple http server")
 	toolDownloadCMD.Alias("dl")
 	toolArgs.Download.Net = toolDownloadCMD.Flag("net", "network to scan, format: 192.168.1.0").Short('n').Strings()
 	toolArgs.Download.Port = toolDownloadCMD.Flag("port", "gmct tool http port").Short('p').Strings()
-	toolArgs.Download.File = toolDownloadCMD.Flag("file", "filename to download").Short('f').String()
+	toolArgs.Download.File = toolDownloadCMD.Flag("file", "filename to download").Short('f').Default("*").String()
 	toolArgs.Download.Name = toolDownloadCMD.Flag("name", "rename download file to").Short('m').String()
 	toolArgs.Download.MaxDeepLevel = toolDownloadCMD.Flag("deep", "max directory deep level to list server files, value 0: no limit").Default("3").Short('d').Int()
-	toolArgs.Download.Host = toolDownloadCMD.Flag("host", "specify a domain or ip to download, example: 192.168.1.1 or 192.168.1.1:9090").Short('h').String()
+	toolArgs.Download.Host = toolDownloadCMD.Flag("host", "specify a domain or ip to download, example: 192.168.1.1 or 192.168.1.1:9090. \nyou can specify auth info, example: foo_user:foo_pass@192.168.1.2").Short('h').Strings()
 	toolArgs.Download.Auth = toolDownloadCMD.Flag("auth", "basic auth info, example: username:password").Short('a').String()
 
 	// sub tool ssh

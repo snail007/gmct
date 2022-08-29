@@ -2,18 +2,23 @@ package installtool
 
 import (
 	"fmt"
+	URL "net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+
 	glog "github.com/snail007/gmc/module/log"
+	gfile "github.com/snail007/gmc/util/file"
 	ghttp "github.com/snail007/gmc/util/http"
 	gmctinstall "github.com/snail007/gmct/scripts/install"
 	"github.com/snail007/gmct/tool"
-	"os"
-	"os/exec"
-	"strings"
-	"time"
 )
 
 var (
-	installPkg string
+	installPkg            string
+	defaultInstallBaseURL = "https://mirrors.host900.com/https://github.host900.com/snail007/gmct/raw/master/scripts/install/"
 )
 
 func init() {
@@ -88,18 +93,37 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 	} else {
 		// fetch install script from https://github.com/snail007/gmct/
 		glog.Infof("fetch [ %s ] from snail007/gmct ...", installPkg)
-		u := "https://github.host900.com/snail007/gmct/raw/master/scripts/install/" + installPkg + ".sh"
-		c := ghttp.NewHTTPClient()
-		c.SetDNS("8.8.8.8:53")
-		b, code, _, e := c.Get(u, time.Second*30, nil)
-		if code != 200 {
-			m := ""
-			if e != nil {
-				m = ", error: " + e.Error()
-			}
-			return fmt.Errorf("request fail, code: %d%s", code, m)
+		installBaseURL := os.Getenv("GMCT_INSTALL_BASE_URL")
+		if installBaseURL == "" {
+			installBaseURL = defaultInstallBaseURL
 		}
-		cmd = string(b)
+		u := filepath.Join(installBaseURL, installPkg+".sh")
+		url, e := URL.Parse(u)
+		if e != nil {
+			return fmt.Errorf("parse url fail, error: %s", e)
+		}
+		switch url.Scheme {
+		case "file":
+			content := gfile.Bytes(url.Path)
+			if len(content) == 0 {
+				return fmt.Errorf("get content fail, file: %s", url.Path)
+			}
+			cmd = string(content)
+		case "http", "https":
+			c := ghttp.NewHTTPClient()
+			c.SetDNS("8.8.8.8:53")
+			b, code, _, e := c.Get(u, time.Second*30, nil)
+			if code != 200 {
+				m := ""
+				if e != nil {
+					m = ", error: " + e.Error()
+				}
+				return fmt.Errorf("request fail, code: %d%s", code, m)
+			}
+			cmd = string(b)
+		default:
+			return fmt.Errorf("unknown url scheme [%s]", u)
+		}
 	}
 	if action == "install" && force == false {
 		//check if installPkg already installed

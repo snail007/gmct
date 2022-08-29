@@ -17,6 +17,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gobwas/glob"
 	"github.com/schollz/progressbar/v3"
 	gctx "github.com/snail007/gmc/module/ctx"
 	glog "github.com/snail007/gmc/module/log"
@@ -29,9 +30,49 @@ import (
 )
 
 var (
-	DefaultPort       = "9669"
-	defaultConfigName = ".gmct_download"
+	DefaultPort          = "9669"
+	defaultConfigName    = ".gmct_download"
+	headerPoweredByKey   = "Powered-By"
+	headerPoweredByValue = "GMCT"
+	headerServerIDKey    = "Server"
+	headerVersionKey     = "Version"
 )
+
+func init() {
+	// gmct xxx => gmct tool xxx
+	flags := map[string]bool{"web": true, "http": true, "www": true, "download": true, "dl": true, "ip": true}
+	if len(os.Args) >= 2 && flags[os.Args[1]] {
+		newArgs := []string{}
+		flagFound := false
+		// insert tool
+		for i, v := range os.Args {
+			if strings.HasPrefix(v, "-") {
+				flagFound = true
+			}
+			if i == 1 {
+				newArgs = append(newArgs, "tool")
+			}
+			newArgs = append(newArgs, v)
+		}
+		// download compact
+		if newArgs[2] == "download" || newArgs[2] == "dl" && !flagFound {
+			switch len(newArgs) {
+			case 4:
+				//gmct tool download <host|file>
+				ip := net.ParseIP(newArgs[3])
+				if ip != nil && ip.To4() != nil {
+					newArgs = []string{newArgs[0], "tool", "dl", "-h", newArgs[3]}
+				} else {
+					newArgs = []string{newArgs[0], "tool", "dl", "-f", newArgs[3]}
+				}
+			case 5:
+				//gmct tool download <host> <file>
+				newArgs = []string{newArgs[0], "tool", "dl", "-h", newArgs[3], "-f", newArgs[4]}
+			}
+		}
+		os.Args = newArgs
+	}
+}
 
 type ToolArgs struct {
 	ToolName *string
@@ -40,10 +81,11 @@ type ToolArgs struct {
 	Download *DownloadArgs
 }
 type HTTPArgs struct {
-	Addr    *string
-	RootDir *string
-	Auth    *[]string
-	Upload  *string
+	Addr     *string
+	RootDir  *string
+	Auth     *[]string
+	Upload   *string
+	ServerID *string
 }
 
 type DownloadArgs struct {
@@ -52,9 +94,21 @@ type DownloadArgs struct {
 	Name         *string
 	File         *string
 	MaxDeepLevel *int
-	Host         *string
+	Host         *[]string
 	Auth         *string
-	client       *ghttp.HTTPClient
+	cfg          *viper.Viper
+}
+
+type serverFileItem struct {
+	url    *URL.URL
+	server *serverItem
+}
+
+type serverItem struct {
+	id      string
+	version string
+	url     *URL.URL
+	auth    []string
 }
 
 func NewToolArgs() ToolArgs {
@@ -91,40 +145,115 @@ func (s *Tool) Start(args interface{}) (err error) {
 	case "http":
 		s.httpServer()
 	case "download":
+		s.initDownload()
 		s.download()
 	}
 	return
 }
-func (s *Tool) getBasicAuth() (user, pass string, ok bool) {
-	if *s.args.Download.Auth != "" {
-		a := strings.Split(*s.args.Download.Auth, ":")
-		return a[0], a[1], true
+func (s *Tool) getBasicAuth(url *URL.URL) (username, password string, isSet bool) {
+	authInfo := ""
+	// form url
+	if url.User.Username() != "" {
+		p, _ := url.User.Password()
+		return url.User.Username(), p, true
 	}
-	return "", "", false
+	//form command line
+	if authInfo == "" {
+		if *s.args.Download.Auth != "" {
+			authInfo = *s.args.Download.Auth
+		}
+	}
+	// from config
+	if authInfo == "" {
+		a := s.getDownloadConfig("auth")
+		if a != nil {
+			authInfo = a.(string)
+		}
+	}
+	if authInfo == "" {
+		return "", "", false
+	}
+	a := strings.Split(authInfo, ":")
+	return a[0], a[1], true
 }
 func (s *Tool) download() {
+	basename := strings.TrimPrefix(*s.args.Download.Name, "/")
+	if basename != "" {
+		if !s.confirmOverwrite(basename) {
+			return
+		}
+		if strings.Contains(basename, "/") {
+			dir, _ := filepath.Abs(filepath.Dir(basename))
+			err := os.MkdirAll(dir, 0755)
+			if err != nil {
+				glog.Errorf("create directory [%s] fail, error: %s", dir, err)
+			}
+		}
+	}
+
+	foundFiles := s.getFoundFiles(s.getServerURL())
+	if len(foundFiles) == 1 {
+		foundFile := foundFiles[0]
+		if basename == "" {
+			basename = filepath.Base(foundFile.url.String())
+			if !s.confirmOverwrite(basename) {
+				return
+			}
+		}
+		s.downloadFile(basename, foundFile, "")
+	} else {
+		for _, foundFile := range foundFiles {
+			basename = filepath.Base(foundFile.url.Path)
+			dir, _ := filepath.Abs(filepath.Join("download_files", strings.TrimPrefix(filepath.Dir(foundFile.url.Path), "/")))
+			err := os.MkdirAll(dir, 0755)
+			if err != nil {
+				glog.Errorf("create directory [%s] fail, error: %s", dir, err)
+			}
+			s.downloadFile(basename, foundFile, dir)
+		}
+	}
+}
+
+func (s *Tool) initDownload() {
 	if *s.args.Download.File == "" {
 		glog.Error("download file name required, use option: -f xxx")
 		return
 	}
-	s.args.Download.client = ghttp.NewHTTPClient()
-	if u, p, ok := s.getBasicAuth(); ok {
-		s.args.Download.client.SetBasicAuth(u, p)
-	}
-	basename := *s.args.Download.Name
-	if basename != "" && !s.confirmOverwrite(basename) {
-		return
-	}
-
-	foundFile := s.getFoundFile(s.getServerURL())
-	if basename == "" {
-		basename = filepath.Base(foundFile)
-		if !s.confirmOverwrite(basename) {
-			return
+	f := filepath.Join(gfile.HomeDir(), defaultConfigName)
+	if gfile.Exists(f) {
+		cfg := viper.New()
+		cfg.SetConfigType("toml")
+		cfg.SetConfigFile(f)
+		e := cfg.ReadInConfig()
+		if e != nil {
+			glog.Warnf("read config error: %s, file:%s", e, f)
 		}
-	}
+		s.args.Download.cfg = cfg
+	} else {
+		gfile.WriteString(f, `# default networks to scan
+# example: net=["192.168.1.0","192.168.2.0"]
+net=[]
 
-	s.downloadFile(basename, foundFile)
+# default hosts to connect
+# example: host=["192.168.1.2","192.168.1.3"]
+# you can specify auth info in url, example: host=["foo_user:foo_pass@192.168.1.2"]
+# you can specify port in url, example: host=["192.168.1.2:9966"]
+# if host is specified, net will ignored.
+host=[]
+
+# default auth info be used when connect to server.
+# example: auth="foo_user:foo_password", username and password seperated by a colon.
+# if --auth option is specified, the auth here will ignored.
+auth=""
+`, false)
+	}
+}
+
+func (s *Tool) getDownloadConfig(key string) interface{} {
+	if s.args.Download.cfg == nil {
+		return nil
+	}
+	return s.args.Download.cfg.Get(key)
 }
 
 func (s *Tool) getSubnetArr() []string {
@@ -140,21 +269,11 @@ func (s *Tool) getSubnetArr() []string {
 		subnetList.Add(checkNet(v))
 	}
 	if subnetList.Len() == 0 {
-		f := filepath.Join(gfile.HomeDir(), defaultConfigName)
-		if gfile.Exists(f) {
-			cfg := viper.New()
-			cfg.SetConfigType("toml")
-			cfg.SetConfigFile(f)
-			e := cfg.ReadInConfig()
-			if e != nil {
-				glog.Warnf("read config error: %s, file:%s", e, f)
-			} else {
-				for _, v := range cfg.GetStringSlice("net") {
-					subnetList.Add(checkNet(v))
-				}
+		net := s.getDownloadConfig("net")
+		if net != nil {
+			for _, v := range net.([]interface{}) {
+				subnetList.Add(checkNet(v.(string)))
 			}
-		} else {
-			gfile.WriteString(f, "# default networks to scan\n# example: net=[\"192.168.1.0\",\"192.168.2.0\"]\nnet=[]\n", false)
 		}
 	}
 	if subnetList.Len() == 0 {
@@ -165,6 +284,37 @@ func (s *Tool) getSubnetArr() []string {
 	return subnetList.ToStringSlice()
 }
 func (s *Tool) getScanURLs() []string {
+	serverURLs := []string{}
+	var getHostURL = func(host string) string {
+		u, _ := URL.Parse(fmt.Sprintf("http://%s/", host))
+		if _, _, err := net.SplitHostPort(u.Host); err != nil {
+			u.Host = net.JoinHostPort(u.Host, DefaultPort)
+		}
+		return u.String()
+	}
+
+	//  from command line
+	for _, host := range *s.args.Download.Host {
+		serverURLs = append(serverURLs, getHostURL(host))
+	}
+	if len(serverURLs) > 0 {
+		return serverURLs
+	}
+
+	//  from config file
+	if len(serverURLs) == 0 {
+		hostArr := s.getDownloadConfig("host")
+		if hostArr != nil {
+			for _, h := range hostArr.([]interface{}) {
+				serverURLs = append(serverURLs, getHostURL(h.(string)))
+			}
+		}
+	}
+	if len(serverURLs) > 0 {
+		return serverURLs
+	}
+
+	//  from auto scan
 	scanURLArr := []string{}
 	subnetArr := s.getSubnetArr()
 	portList := gset.New()
@@ -181,37 +331,51 @@ func (s *Tool) getScanURLs() []string {
 	return scanURLArr
 }
 
-func (s *Tool) getWebServerList() []string {
+func (s *Tool) getDownloadHTTPClient() *ghttp.HTTPClient {
+	client := ghttp.NewHTTPClient()
+	client.SetProxyFromEnv(true)
+	return client
+}
+
+func (s *Tool) getWebServerList() []*serverItem {
 	scanURLArr := s.getScanURLs()
 	length := len(scanURLArr)
 	pool := gpool.New(length)
 	g := sync.WaitGroup{}
 	g.Add(length)
-	gmctWebServerList := []string{}
+	gmctWebServerList := []*serverItem{}
 	for _, u1 := range scanURLArr {
-		u := u1
+		scanURL := u1
 		pool.Submit(func() {
 			defer g.Done()
-			_, _, resp, e := s.args.Download.client.Get(u, time.Second*3, nil)
+			client := s.getDownloadHTTPClient()
+			url, _ := URL.Parse(scanURL)
+			user, pass, ok := s.getBasicAuth(url)
+			if ok {
+				client.SetBasicAuth(user, pass)
+			}
+			_, _, resp, e := client.Get(scanURL, time.Second*3, nil)
 			if e != nil {
 				return
 			}
-			if strings.EqualFold(resp.Header.Get("Powered-By"), "GMCT") {
-				gmctWebServerList = append(gmctWebServerList, u)
+			if strings.EqualFold(resp.Header.Get(headerPoweredByKey), headerPoweredByValue) {
+				item := &serverItem{
+					url:     url,
+					version: resp.Header.Get(headerVersionKey),
+					id:      resp.Header.Get(headerServerIDKey),
+				}
+				if ok {
+					item.auth = []string{user, pass}
+					url.User = nil
+				}
+				gmctWebServerList = append(gmctWebServerList, item)
 			}
 		})
 	}
 	g.Wait()
 	return gmctWebServerList
 }
-func (s *Tool) getServerURL() string {
-	host := *s.args.Download.Host
-	if host != "" {
-		if !strings.Contains(host, ":") {
-			host = net.JoinHostPort(host, DefaultPort)
-		}
-		return fmt.Sprintf("http://%s/", host)
-	}
+func (s *Tool) getServerURL() *serverItem {
 	gmctWebServerList := s.getWebServerList()
 	if len(gmctWebServerList) == 0 {
 		glog.Error("none gmct http server found")
@@ -228,8 +392,12 @@ func (s *Tool) getServerURL() string {
 				Message: "which server do you want to select?",
 				Options: selectIdx,
 				Description: func(value string, index int) string {
-					a, _ := URL.Parse(gmctWebServerList[index])
-					return a.Hostname()
+					item := gmctWebServerList[index]
+					desc := ""
+					if item.id != "" {
+						desc = fmt.Sprintf("[id: %s, version: %s]", item.id, item.version)
+					}
+					return item.url.Hostname() + " " + desc
 				},
 			},
 			Validate: survey.Required,
@@ -246,26 +414,37 @@ func (s *Tool) getServerURL() string {
 	}
 	return serverURL
 }
-func (s *Tool) getFoundFile(serverURL string) string {
-	var files []string
-	s.listFiles(serverURL, "", &files)
+func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileItem) {
+	var files []*serverFileItem
+	s.listFiles(serverItem, "", &files)
 	if len(files) == 0 {
 		glog.Error("no files found on the specify server")
 	}
-	foundFiles := []string{}
+	// filter files
+	toMatch := *s.args.Download.File
+	g, err := glob.Compile(toMatch)
+	if err != nil {
+		glog.Errorf("parse file name error: %s", err)
+	}
 	for _, f := range files {
-		if strings.Contains(filepath.Base(f), *s.args.Download.File) {
+		basename := filepath.Base(f.url.Path)
+		if strings.Contains(toMatch, "/") {
+			//contains path
+			basename = f.url.Path
+		}
+		if strings.Contains(basename, toMatch) || g.Match(basename) {
 			foundFiles = append(foundFiles, f)
 		}
 	}
 	if len(foundFiles) == 0 {
 		glog.Error("no matched file found on the specify server")
 	}
-	foundFile := foundFiles[0]
+
 	if len(foundFiles) > 1 {
+		foundFiles = append([]*serverFileItem{nil}, foundFiles...)
 		selectIdx := []string{}
 		for idx := range foundFiles {
-			selectIdx = append(selectIdx, fmt.Sprintf("%d", idx+1))
+			selectIdx = append(selectIdx, fmt.Sprintf("%d", idx))
 		}
 		var qs = []*survey.Question{{
 			Name: "index",
@@ -273,8 +452,10 @@ func (s *Tool) getFoundFile(serverURL string) string {
 				Message: "multiple matched files found, which file do you want to download?",
 				Options: selectIdx,
 				Description: func(value string, index int) string {
-					a, _ := URL.Parse(foundFiles[index])
-					return a.Path
+					if index == 0 {
+						return "download all files"
+					}
+					return foundFiles[index].url.Path
 				},
 			},
 			Validate: survey.Required,
@@ -287,9 +468,16 @@ func (s *Tool) getFoundFile(serverURL string) string {
 		if e != nil {
 			glog.Error(e.Error())
 		}
-		foundFile = foundFiles[answers.Index]
+		if answers.Index == 0 {
+			//download all
+			return foundFiles[1:]
+		} else {
+			//select a file
+			return []*serverFileItem{foundFiles[answers.Index]}
+		}
+	} else {
+		return foundFiles
 	}
-	return foundFile
 }
 func (s *Tool) confirmOverwrite(basename string) bool {
 	if gfile.Exists(basename) {
@@ -314,11 +502,11 @@ func (s *Tool) confirmOverwrite(basename string) bool {
 	}
 	return true
 }
-func (s *Tool) downloadFile(basename, foundFile string) {
-	fmt.Println("downloading: " + foundFile)
-	req, _ := http.NewRequest("GET", foundFile, nil)
-	if u, p, ok := s.getBasicAuth(); ok {
-		req.SetBasicAuth(u, p)
+func (s *Tool) downloadFile(basename string, foundFile *serverFileItem, dir string) {
+	fmt.Println("downloading: " + foundFile.url.String())
+	req, _ := http.NewRequest("GET", foundFile.url.String(), nil)
+	if req != nil && foundFile.server.auth != nil {
+		req.SetBasicAuth(foundFile.server.auth[0], foundFile.server.auth[1])
 	}
 	resp, e := http.DefaultClient.Do(req)
 	if e != nil {
@@ -341,7 +529,7 @@ func (s *Tool) downloadFile(basename, foundFile string) {
 			glog.Errorf("remove old file error: %s", e)
 		}
 	}
-	e = os.Rename(tmpfile, basename)
+	e = os.Rename(tmpfile, filepath.Join(dir, basename))
 	if e != nil {
 		os.Remove(tmpfile)
 		glog.Errorf("rename file error: %s", e)
@@ -349,11 +537,17 @@ func (s *Tool) downloadFile(basename, foundFile string) {
 	glog.Info("download SUCCESS")
 }
 
-func (s *Tool) listFiles(serverURL, path string, files *[]string) {
-	body, _, _, e := s.args.Download.client.Get(serverURL+path, time.Second*3, nil)
+func (s *Tool) listFiles(server *serverItem, path string, files *[]*serverFileItem) {
+	body, _, resp, e := s.getDownloadHTTPClient().Get(server.url.String()+path, time.Second*3, nil)
 	if e != nil {
+		glog.Warnf("fetch [%s] error: %s", server.url, e)
 		return
 	}
+	if resp.Header.Get(headerPoweredByKey) != headerPoweredByValue {
+		glog.Warnf("[%s] is not a gmct http server", server.url.Host)
+		return
+	}
+
 	doc, e := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if e != nil {
 		return
@@ -368,9 +562,13 @@ func (s *Tool) listFiles(serverURL, path string, files *[]string) {
 			if *s.args.Download.MaxDeepLevel > 0 && deep > *s.args.Download.MaxDeepLevel {
 				return
 			}
-			s.listFiles(serverURL, path+href, files)
+			s.listFiles(server, path+href, files)
 		} else {
-			*files = append(*files, serverURL+path+href)
+			u, _ := URL.Parse(server.url.String() + path + href)
+			*files = append(*files, &serverFileItem{
+				url:    u,
+				server: server,
+			})
 		}
 	})
 }
@@ -493,7 +691,11 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 		}
 		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 		log.Printf("%s %s %s", ip, r.Method, r.URL.Path)
-		w.Header().Set("Powered-By", `GMCT`)
+		w.Header().Set(headerPoweredByKey, headerPoweredByValue)
+		w.Header().Set(headerVersionKey, tool.Version)
+		if id := *s.args.HTTP.ServerID; id != "" {
+			w.Header().Set(headerServerIDKey, id)
+		}
 		http.ServeFile(w, r, reqPathAbs)
 	}))
 	panic(http.ListenAndServe(*s.args.HTTP.Addr, nil))

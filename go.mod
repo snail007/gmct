@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.5
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/gobwas/glob v0.2.3
 	github.com/pkg/errors v0.8.1
 	github.com/schollz/progressbar/v3 v3.8.1
 	github.com/snail007/gmc v0.0.0-20220826032345-5caed47f4d5e
