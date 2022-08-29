@@ -5,7 +5,6 @@ import (
 	URL "net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -95,8 +94,8 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 		if installBaseURL == "" {
 			installBaseURL = defaultInstallBaseURL
 		}
-		glog.Infof("fetch [ %s ] from %s", installPkg,installBaseURL)
-		u := filepath.Join(installBaseURL, installPkg+".sh")
+		glog.Infof("fetch [ %s ] from %s", installPkg, installBaseURL)
+		u := strings.TrimSuffix(installBaseURL, "/") + "/" + installPkg + ".sh"
 		url, e := URL.Parse(u)
 		if e != nil {
 			return fmt.Errorf("parse url fail, error: %s", e)
