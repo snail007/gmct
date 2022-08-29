@@ -91,12 +91,11 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 		// installPkg found in locally goinstall.Scripts
 		cmd = v
 	} else {
-		// fetch install script from https://github.com/snail007/gmct/
-		glog.Infof("fetch [ %s ] from snail007/gmct ...", installPkg)
 		installBaseURL := os.Getenv("GMCT_INSTALL_BASE_URL")
 		if installBaseURL == "" {
 			installBaseURL = defaultInstallBaseURL
 		}
+		glog.Infof("fetch [ %s ] from %s", installPkg,installBaseURL)
 		u := filepath.Join(installBaseURL, installPkg+".sh")
 		url, e := URL.Parse(u)
 		if e != nil {
@@ -134,14 +133,16 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 		}
 	}
 	cmd = "export ACTION=" + action + ";" + s.exportString() + cmd
-	glog.Infof("running [ %s ] install script ...", installPkg)
-	b, err := exec.Command("bash", "-c", cmd).CombinedOutput()
+	glog.Infof("installing [ %s ] ...", installPkg)
+	command := exec.Command("bash", "-c", cmd)
+	command.Stdin = os.Stdin
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	err = command.Run()
 	if err != nil {
-		return fmt.Errorf("install fail, OUTPUT: %s, ERROR: %s", string(b), err)
-	}
-	if len(b) > 0 {
-		glog.Infof("[ %s ] install script done.", installPkg)
-		fmt.Println(string(b))
+		return fmt.Errorf("install FAIL, ERROR: %s", err)
+	} else {
+		glog.Infof("[ %s ] install DONE.", installPkg)
 	}
 	return
 }
