@@ -180,6 +180,7 @@ func main() {
 	toolArgs.Download.Host = toolDownloadCMD.Flag("host", "specify a domain or ip to download, example: 192.168.1.1 or 192.168.1.1:9090. \nyou can specify auth info, example: foo_user:foo_pass@192.168.1.2").Short('h').Strings()
 	toolArgs.Download.Auth = toolDownloadCMD.Flag("auth", "basic auth info, example: username:password").Short('a').String()
 	toolArgs.Download.ServerID = toolDownloadCMD.Flag("id", "server id name to download files").Short('i').String()
+	toolArgs.Download.DownloadAll = toolDownloadCMD.Flag("all", "download all files matched").Default("false").Bool()
 
 	// sub tool ssh
 	toolSsh := gmctApp.Command("ssh", "ssh tool, copy  file to or execute command on remote host")

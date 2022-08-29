@@ -37,6 +37,7 @@ type DownloadArgs struct {
 	Host         *[]string
 	Auth         *string
 	ServerID     *string
+	DownloadAll  *bool
 	cfg          *viper.Viper
 }
 
@@ -110,16 +111,17 @@ func (s *Tool) download() {
 				return
 			}
 		}
-		s.downloadFile(basename, foundFile, "")
+		s.downloadFile(1, 1, basename, foundFile, "")
 	} else {
-		for _, foundFile := range foundFiles {
+		total := len(foundFiles)
+		for i, foundFile := range foundFiles {
 			basename = filepath.Base(foundFile.url.Path)
 			dir, _ := filepath.Abs(filepath.Join("download_files", strings.TrimPrefix(filepath.Dir(foundFile.url.Path), "/")))
 			err := os.MkdirAll(dir, 0755)
 			if err != nil {
 				glog.Errorf("create directory [%s] fail, error: %s", dir, err)
 			}
-			s.downloadFile(basename, foundFile, dir)
+			s.downloadFile(i+1, total, basename, foundFile, dir)
 		}
 	}
 }
@@ -311,6 +313,10 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 	}
 
 	if len(foundFiles) > 1 {
+		if *s.args.Download.DownloadAll {
+			//download all
+			return foundFiles
+		}
 		foundFiles = append([]*serverFileItem{nil}, foundFiles...)
 		selectIdx := []string{}
 		for idx := range foundFiles {
@@ -457,7 +463,7 @@ func (s *Tool) confirmOverwrite(basename string) bool {
 	}
 	return true
 }
-func (s *Tool) downloadFile(basename string, foundFile *serverFileItem, dir string) {
+func (s *Tool) downloadFile(i, total int, basename string, foundFile *serverFileItem, dir string) {
 	fmt.Println("downloading: " + foundFile.url.String())
 	req, _ := http.NewRequest("GET", foundFile.url.String(), nil)
 	if req != nil && foundFile.server.auth != nil {
@@ -471,9 +477,28 @@ func (s *Tool) downloadFile(basename string, foundFile *serverFileItem, dir stri
 	tmpfile := basename + ".tmp"
 	f, _ := os.OpenFile(tmpfile, os.O_CREATE|os.O_WRONLY, 0644)
 	defer f.Close()
-	bar := progressbar.DefaultBytes(
+	bar := progressbar.NewOptions64(
 		resp.ContentLength,
+		progressbar.OptionSetDescription(fmt.Sprintf("(%d/%d)", i, total)),
+		progressbar.OptionSetWriter(os.Stderr),
+		progressbar.OptionShowBytes(true),
+		progressbar.OptionSetWidth(10),
+		progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionShowCount(),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprint(os.Stderr, "\n")
+		}),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "=",
+			SaucerHead:    ">",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}),
 	)
+	bar.RenderBlank()
 	_, e = io.Copy(io.MultiWriter(f, bar), resp.Body)
 	if e != nil {
 		glog.Errorf("download error: %s", e)

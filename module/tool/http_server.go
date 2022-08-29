@@ -34,6 +34,7 @@ type HTTPArgs struct {
 
 func (s *Tool) httpServer() {
 	fmt.Println(`>>> Simple HTTP Server`)
+	fmt.Println(`Web Root: ` + gfile.Abs(*s.args.HTTP.RootDir))
 	if id := *s.args.HTTP.ServerID; id != "" {
 		fmt.Println(`Server ID: ` + id)
 	}
