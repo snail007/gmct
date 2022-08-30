@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	installBaseURLEnvKey  = "GMCT_INSTALL_BASE_URL"
 	installPkg            string
 	defaultInstallBaseURL = "https://mirrors.host900.com/https://github.host900.com/snail007/gmct/raw/master/scripts/install/"
 )
@@ -90,7 +91,7 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 		// installPkg found in locally goinstall.Scripts
 		cmd = v
 	} else {
-		installBaseURL := os.Getenv("GMCT_INSTALL_BASE_URL")
+		installBaseURL := os.Getenv(installBaseURLEnvKey)
 		if installBaseURL == "" {
 			installBaseURL = defaultInstallBaseURL
 		}

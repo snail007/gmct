@@ -1,10 +1,11 @@
 package tool
 
 import (
-	"github.com/snail007/gmct/tool"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/snail007/gmct/tool"
 )
 
 func init() {

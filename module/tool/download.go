@@ -3,6 +3,16 @@ package tool
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
+	URL "net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gobwas/glob"
@@ -13,20 +23,23 @@ import (
 	ghttp "github.com/snail007/gmc/util/http"
 	gset "github.com/snail007/gmc/util/set"
 	"github.com/spf13/viper"
-	"io"
-	"net"
-	"net/http"
-	URL "net/url"
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
-	"time"
 )
 
 var (
 	defaultConfigName = ".gmct_download"
+	netIPFilterEnvKey = "GMCT_NET_IP_FILTER"
+	netIPFilter       = map[string]bool{}
 )
+
+func init() {
+	if v := os.Getenv(netIPFilterEnvKey); v != "" {
+		for _, ip := range strings.Split(v, ",") {
+			if ip != "" {
+				netIPFilter[ip] = true
+			}
+		}
+	}
+}
 
 type DownloadArgs struct {
 	Port         *[]string
@@ -248,6 +261,9 @@ func (s *Tool) getScanURLs() []string {
 	for _, subnet := range subnetArr {
 		for i := 1; i <= 255; i++ {
 			ip := subnet + fmt.Sprintf("%d", i)
+			if len(netIPFilter) > 0 && !netIPFilter[ip] {
+				continue
+			}
 			for _, port := range portList.ToStringSlice() {
 				scanURLArr = append(scanURLArr, fmt.Sprintf("http://%s:%s/", ip, port))
 			}
