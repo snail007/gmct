@@ -52,6 +52,7 @@ type DownloadArgs struct {
 	Auth         *string
 	ServerID     *string
 	DownloadAll  *bool
+	Timeout      *int
 	cfg          *viper.Viper
 }
 
@@ -144,7 +145,11 @@ func (s *Tool) download() {
 func (s *Tool) getServerURL() *serverItem {
 	gmctWebServerList := s.getWebServerList()
 	if len(gmctWebServerList) == 0 {
-		glog.Errorf("none gmct http server found, net: %v", s.getSubnetArr())
+		n := []string{}
+		for _, v := range s.getSubnetArr() {
+			n = append(n, v+"0")
+		}
+		glog.Errorf("none gmct http server found, scan: %d, net: %v", len(s.getScanURLs()), n)
 	}
 	serverURL := gmctWebServerList[0]
 	if len(gmctWebServerList) > 1 {
@@ -202,7 +207,7 @@ func (s *Tool) getWebServerList() []*serverItem {
 			defer g.Done()
 			url, _ := URL.Parse(scanURL)
 			user, pass, client := s.getDownloadHTTPClient(nil, url)
-			_, _, resp, e := client.Get(scanURL, time.Second*3, nil)
+			_, _, resp, e := client.Get(scanURL, time.Second*time.Duration(*s.args.Download.Timeout), nil)
 			if e != nil {
 				return
 			}
@@ -383,7 +388,7 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 // 2
 func (s *Tool) listFiles(server *serverItem, path string, files *[]*serverFileItem) {
 	_, _, client := s.getDownloadHTTPClient(server.auth, nil)
-	body, _, resp, e := client.Get(server.url.String()+path, time.Second*3, nil)
+	body, _, resp, e := client.Get(server.url.String()+path, time.Second*time.Duration(*s.args.Download.Timeout), nil)
 	if e != nil {
 		glog.Warnf("fetch [%s] error: %s", server.url, e)
 		return

@@ -181,6 +181,7 @@ func main() {
 	toolArgs.Download.Auth = toolDownloadCMD.Flag("auth", "basic auth info, example: username:password").Short('a').String()
 	toolArgs.Download.ServerID = toolDownloadCMD.Flag("id", "server id name to download files").Short('i').String()
 	toolArgs.Download.DownloadAll = toolDownloadCMD.Flag("all", "download all files matched").Default("false").Bool()
+	toolArgs.Download.Timeout = toolDownloadCMD.Flag("timeout", "timeout seconds to connect to server").Default("3").Short('t').Int()
 
 	// sub tool ssh
 	toolSsh := gmctApp.Command("ssh", "ssh tool, copy  file to or execute command on remote host")
