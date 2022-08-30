@@ -21,6 +21,7 @@ import (
 	gfile "github.com/snail007/gmc/util/file"
 	"github.com/snail007/gmc/util/gpool"
 	ghttp "github.com/snail007/gmc/util/http"
+	gmap "github.com/snail007/gmc/util/map"
 	gset "github.com/snail007/gmc/util/set"
 	"github.com/spf13/viper"
 )
@@ -143,7 +144,7 @@ func (s *Tool) download() {
 func (s *Tool) getServerURL() *serverItem {
 	gmctWebServerList := s.getWebServerList()
 	if len(gmctWebServerList) == 0 {
-		glog.Error("none gmct http server found")
+		glog.Errorf("none gmct http server found, net: %v", s.getSubnetArr())
 	}
 	serverURL := gmctWebServerList[0]
 	if len(gmctWebServerList) > 1 {
@@ -158,11 +159,18 @@ func (s *Tool) getServerURL() *serverItem {
 				Options: selectIdx,
 				Description: func(value string, index int) string {
 					item := gmctWebServerList[index]
-					desc := ""
+					desc := []string{}
 					if item.id != "" {
-						desc = fmt.Sprintf("[id: %s, version: %s]", item.id, item.version)
+						meta := gmap.New()
+						meta.Store("id", item.id)
+						meta.Store("version", item.version)
+						meta.Store("port", item.url.Port())
+						meta.Range(func(key, value interface{}) bool {
+							desc = append(desc, fmt.Sprintf("%v: %v", key, value))
+							return true
+						})
 					}
-					return item.url.Hostname() + " " + desc
+					return item.url.Hostname() + " [" + strings.Join(desc, ", ") + "]"
 				},
 			},
 			Validate: survey.Required,
@@ -306,13 +314,13 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 	var files []*serverFileItem
 	s.listFiles(serverItem, "", &files)
 	if len(files) == 0 {
-		glog.Error("no files found on the specify server")
+		glog.Errorf("no files found on the specify server, %s", serverItem.url.Host)
 	}
 	// filter files
 	toMatch := *s.args.Download.File
 	g, err := glob.Compile(toMatch)
 	if err != nil {
-		glog.Errorf("parse file name error: %s", err)
+		glog.Errorf("parse file name [%s] error: %s", toMatch, err)
 	}
 	for _, f := range files {
 		basename := filepath.Base(f.url.Path)
@@ -325,7 +333,7 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 		}
 	}
 	if len(foundFiles) == 0 {
-		glog.Error("no matched file found on the specify server")
+		glog.Errorf("no matched file found on the specify server, %s, %s", serverItem.url.Host, toMatch)
 	}
 
 	if len(foundFiles) > 1 {
@@ -517,18 +525,19 @@ func (s *Tool) downloadFile(i, total int, basename string, foundFile *serverFile
 	bar.RenderBlank()
 	_, e = io.Copy(io.MultiWriter(f, bar), resp.Body)
 	if e != nil {
-		glog.Errorf("download error: %s", e)
+		glog.Errorf("write download file error: %s, file: %s", e, gfile.Abs(tmpfile))
 	}
 	if gfile.Exists(basename) {
 		e = os.Remove(basename)
 		if e != nil {
-			glog.Errorf("remove old file error: %s", e)
+			glog.Errorf("remove old file error: %s, file: %s", e, gfile.Abs(basename))
 		}
 	}
-	e = os.Rename(tmpfile, filepath.Join(dir, basename))
+	dstfile := filepath.Join(dir, basename)
+	e = os.Rename(tmpfile, dstfile)
 	if e != nil {
 		os.Remove(tmpfile)
-		glog.Errorf("rename file error: %s", e)
+		glog.Errorf("rename file error: %s, [%s] to [%s]", e, tmpfile, dstfile)
 	}
 	glog.Info("download SUCCESS")
 }
