@@ -3,6 +3,10 @@ package tool
 import (
 	"crypto/rand"
 	"fmt"
+	gctx "github.com/snail007/gmc/module/ctx"
+	glog "github.com/snail007/gmc/module/log"
+	gfile "github.com/snail007/gmc/util/file"
+	"github.com/snail007/gmct/tool"
 	"io"
 	"log"
 	"net"
@@ -11,11 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	gctx "github.com/snail007/gmc/module/ctx"
-	glog "github.com/snail007/gmc/module/log"
-	gfile "github.com/snail007/gmc/util/file"
-	"github.com/snail007/gmct/tool"
 )
 
 var (
@@ -163,7 +162,7 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 		if id := *s.args.HTTP.ServerID; id != "" {
 			w.Header().Set(headerServerIDKey, id)
 		}
-		http.ServeFile(w, r, reqPathAbs)
+		ServeFile(w, r, reqPathAbs)
 	}))
 	glog.Error(http.ListenAndServe(*s.args.HTTP.Addr, nil))
 }

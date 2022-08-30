@@ -53,6 +53,7 @@ type DownloadArgs struct {
 	ServerID     *string
 	DownloadAll  *bool
 	Timeout      *int
+	DownloadDir  *string
 	cfg          *viper.Viper
 }
 
@@ -131,7 +132,7 @@ func (s *Tool) download() {
 		total := len(foundFiles)
 		for i, foundFile := range foundFiles {
 			basename = filepath.Base(foundFile.url.Path)
-			dir, _ := filepath.Abs(filepath.Join("download_files", strings.TrimPrefix(filepath.Dir(foundFile.url.Path), "/")))
+			dir, _ := filepath.Abs(filepath.Join(*s.args.Download.DownloadDir, strings.TrimPrefix(filepath.Dir(foundFile.url.Path), "/")))
 			err := os.MkdirAll(dir, 0755)
 			if err != nil {
 				glog.Errorf("create directory [%s] fail, error: %s", dir, err)
@@ -414,7 +415,12 @@ func (s *Tool) listFiles(server *serverItem, path string, files *[]*serverFileIt
 			}
 			s.listFiles(server, path+href, files)
 		} else {
-			u, _ := URL.Parse(server.url.String() + path + href)
+			a := server.url.String() + path + href
+			u, err := URL.Parse(a)
+			if err != nil {
+				glog.Warnf("parse url error: %s, url: %s", err, a)
+				return
+			}
 			*files = append(*files, &serverFileItem{
 				url:    u,
 				server: server,
