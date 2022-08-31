@@ -231,6 +231,7 @@ func (s *Tool) getWebServerList() []*serverItem {
 		})
 	}
 	g.Wait()
+	pool.Stop()
 	return gmctWebServerList
 }
 

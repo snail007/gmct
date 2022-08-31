@@ -62,15 +62,15 @@ func toHTTPError(err error) (msg string, httpStatus int) {
 	return "500 Internal Server Error", http.StatusInternalServerError
 }
 func serveFile(w http.ResponseWriter, r *http.Request, fs http.FileSystem, name string, redirect bool) {
-	const indexPage = "/index.html"
+	//const indexPage = "/index.html"
 
 	// redirect .../index.html to .../
 	// can't use Redirect() because that would make the path absolute,
 	// which would be a problem running under StripPrefix
-	if strings.HasSuffix(r.URL.Path, indexPage) {
-		localRedirect(w, r, "./")
-		return
-	}
+	//if strings.HasSuffix(r.URL.Path, indexPage) {
+	//	localRedirect(w, r, "./")
+	//	return
+	//}
 
 	f, err := fs.Open(name)
 	if err != nil {
