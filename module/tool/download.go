@@ -507,7 +507,8 @@ func (s *Tool) downloadFile(i, total int, basename string, foundFile *serverFile
 	}
 	resp, e := http.DefaultClient.Do(req)
 	if e != nil {
-		glog.Errorf("download error: %s", e)
+		glog.Warnf("download error: %s", e)
+		return
 	}
 	defer resp.Body.Close()
 	tmpfile := basename + ".tmp"
@@ -537,19 +538,22 @@ func (s *Tool) downloadFile(i, total int, basename string, foundFile *serverFile
 	bar.RenderBlank()
 	_, e = io.Copy(io.MultiWriter(f, bar), resp.Body)
 	if e != nil {
-		glog.Errorf("write download file error: %s, file: %s", e, gfile.Abs(tmpfile))
+		glog.Warnf("write download file error: %s, file: %s", e, gfile.Abs(tmpfile))
+		return
 	}
 	if gfile.Exists(basename) {
 		e = os.Remove(basename)
 		if e != nil {
-			glog.Errorf("remove old file error: %s, file: %s", e, gfile.Abs(basename))
+			glog.Warnf("remove old file error: %s, file: %s", e, gfile.Abs(basename))
+			return
 		}
 	}
 	dstfile := filepath.Join(dir, basename)
 	e = os.Rename(tmpfile, dstfile)
 	if e != nil {
 		os.Remove(tmpfile)
-		glog.Errorf("rename file error: %s, [%s] to [%s]", e, tmpfile, dstfile)
+		glog.Warnf("rename file error: %s, [%s] to [%s]", e, tmpfile, dstfile)
+		return
 	}
 	glog.Info("download SUCCESS")
 }
