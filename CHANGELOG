@@ -1,4 +1,10 @@
 GMCT更新日志
+v0.0.34
+1.新增 cover
+--timeout设置单个test执行超时时间。
+--coverpkg设置额外的覆盖率包。
+--debug 设置debug模式，输出更多日志，方便排查问题。
+
 v0.0.33
 1.新增 tool download 认证支持。
 

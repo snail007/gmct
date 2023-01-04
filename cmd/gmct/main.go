@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"strings"
-
 	gcore "github.com/snail007/gmc/core"
 	glog "github.com/snail007/gmc/module/log"
 	"github.com/snail007/gmct/module/controller"
@@ -22,6 +19,8 @@ import (
 	toolx "github.com/snail007/gmct/module/tool"
 	"github.com/snail007/gmct/module/update"
 	"github.com/snail007/gmct/module/view"
+	"os"
+	"strings"
 
 	"github.com/snail007/gmct/module/static"
 
@@ -131,6 +130,9 @@ func main() {
 	coverArgs.ForceCheck = coverCmd.Flag("force", "force check the package even it not contains any *_test.go file").Short('f').Default("false").Bool()
 	coverArgs.Ordered = coverCmd.Flag("order", "disable parallel run").Short('o').Default("false").Bool()
 	coverArgs.Only = coverCmd.Flag("only", "only testing current directory without sub directory").Default("false").Bool()
+	coverArgs.CoverPkg = coverCmd.Flag("coverpkg", "additional cover packages split by comma").Default("").String()
+	coverArgs.Timeout = coverCmd.Flag("timeout", `timeout flag accept any input valid for time.ParseDuration.A duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("15m").String()
+	coverArgs.Debug = coverCmd.Flag("debug", "in debug mode will logging steps of testing").Default("false").Bool()
 
 	// subtool controller
 	viewCmd := gmctApp.Command("view", "create a controller in current directory")

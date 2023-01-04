@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	glog "github.com/snail007/gmc/module/log"
+	gcast "github.com/snail007/gmc/util/cast"
 	"io"
 	"io/ioutil"
 	"os"
@@ -24,6 +26,9 @@ type CoverArgs struct {
 	ForceCheck *bool
 	Ordered    *bool
 	Only       *bool
+	CoverPkg   *string
+	Timeout    *string
+	Debug      *bool
 }
 
 func NewCoverArgs() CoverArgs {
@@ -48,17 +53,18 @@ func (s *Cover) Start(args interface{}) (err error) {
 	os.Setenv("GMCT_COVER", "true")
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
-		return fmt.Errorf("GOPATH not found")
+		return fmt.Errorf("environment variables $GOPATH not found")
 	}
 	gopath, _ = filepath.Abs(gopath)
 	pwd, _ := os.Getwd()
 	if !strings.HasPrefix(pwd, gopath) {
-		return fmt.Errorf("your current path must be in GOPATH/src")
+		return fmt.Errorf("your current path must be in $GOPATH/src")
 	}
 	err = s.init(args)
 	if err != nil {
 		return
 	}
+	s.debugf("$GOPATH is " + gopath)
 	race := ""
 	if *s.args.Race {
 		race = "-race"
@@ -90,7 +96,8 @@ func (s *Cover) Start(args interface{}) (err error) {
 		err = fmt.Errorf("no match package found")
 		return
 	}
-	files := make([]string, len(packages))
+	s.debugf("testing packages list, %s", strings.Join(packages, ","))
+	coverProfiles := make([]string, len(packages))
 	payload := "mode: atomic\n"
 	var g sync.WaitGroup
 	var errChn chan error
@@ -104,8 +111,20 @@ func (s *Cover) Start(args interface{}) (err error) {
 	timeout := "15m"
 	if v := os.Getenv("GMCT_TEST_TIMEOUT"); v != "" {
 		timeout = v
+	} else if *s.args.Timeout != "" {
+		timeout = *s.args.Timeout
 	}
 	coverPkgs := strings.Join(packages, ",")
+	addtionalCoverPkgs := strings.Split(*s.args.CoverPkg, ",")
+	if len(addtionalCoverPkgs) > 0 {
+		for _, v := range addtionalCoverPkgs {
+			if len(v) == 0 {
+				continue
+			}
+			coverPkgs += "," + v
+		}
+	}
+	s.debugf("cover packages list, %s", coverPkgs)
 	os.Setenv("GMCT_COVER_VERBOSE", fmt.Sprintf("%v", *s.args.Verbose))
 	os.Setenv("GMCT_COVER_RACE", fmt.Sprintf("%v", *s.args.Race))
 	os.Setenv("GMCT_COVER_PACKAGES", coverPkgs)
@@ -114,11 +133,11 @@ func (s *Cover) Start(args interface{}) (err error) {
 	for k, pkg := range packages {
 		b := make([]byte, 16)
 		io.ReadFull(rand.Reader, b)
-		files[k] = filepath.Join(os.TempDir(), fmt.Sprintf("%x", b)) + ".gocc.tmp"
-		w := func(file, pkg string) {
+		coverProfiles[k] = filepath.Join(os.TempDir(), fmt.Sprintf("%x", b)) + ".gocc.tmp"
+		w := func(coverprofile, pkg string) {
 			workDir := filepath.Join(gopath, "src", pkg)
 			cmd := `go test -timeout ` + timeout + ` ` + verbose + ` ` + race +
-				` -covermode=atomic -coverprofile=` + file +
+				` -covermode=atomic -coverprofile=` + coverprofile +
 				` -coverpkg=` + coverPkgs + ` ` + pkg
 			output, err = s.exec(cmd, workDir)
 			if err != nil {
@@ -135,12 +154,12 @@ func (s *Cover) Start(args interface{}) (err error) {
 			}
 		}
 		if !*s.args.Ordered {
-			go func(file, pkg string) {
+			go func(coverprofile, pkg string) {
 				defer g.Done()
-				w(file, pkg)
-			}(files[k], pkg)
+				w(coverprofile, pkg)
+			}(coverProfiles[k], pkg)
 		} else {
-			w(files[k], pkg)
+			w(coverProfiles[k], pkg)
 		}
 	}
 	if !*s.args.Ordered {
@@ -154,18 +173,18 @@ func (s *Cover) Start(args interface{}) (err error) {
 			return e
 		}
 	}
-	//scan additional code coverage files by testing
+	//scan additional code coverage coverProfiles by testing
 	for _, pkg := range packages {
 		path := filepath.Join(gopath, "src", pkg)
 		fs, _ := filepath.Glob(path + "/*.gocc.tmp")
 		for _, f := range fs {
-			files = append(files, f)
+			coverProfiles = append(coverProfiles, f)
 		}
 		if len(fs) > 0 && *s.args.Verbose {
-			fmt.Printf("cover files found %v\n", fs)
+			fmt.Printf("cover coverProfiles found %v\n", fs)
 		}
 	}
-	for _, file := range files {
+	for _, file := range coverProfiles {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
 			continue
 		}
@@ -210,8 +229,16 @@ func (s *Cover) Start(args interface{}) (err error) {
 	}
 	return
 }
-
+func (s *Cover) debugf(formats string, values ...interface{}) {
+	if gcast.ToBool(os.Getenv("DEBUG")) || *s.args.Debug {
+		glog.Debugf(formats, values...)
+	}
+}
 func (s *Cover) exec(cmd, workDir string) (output string, err error) {
+	if workDir == "" {
+		workDir = "." + string(os.PathSeparator)
+	}
+	s.debugf("[WORK DIR]: %v, [COMMAND]: %v", workDir, cmd)
 	c := exec.Command("bash", "-c", cmd)
 	c.Env = append(c.Env, os.Environ()...)
 	c.Dir = workDir
