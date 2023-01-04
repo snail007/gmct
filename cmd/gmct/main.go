@@ -131,7 +131,7 @@ func main() {
 	coverArgs.Ordered = coverCmd.Flag("order", "disable parallel run").Short('o').Default("false").Bool()
 	coverArgs.Only = coverCmd.Flag("only", "only testing current directory without sub directory").Default("false").Bool()
 	coverArgs.CoverPkg = coverCmd.Flag("coverpkg", "additional cover packages split by comma").Default("").String()
-	coverArgs.Timeout = coverCmd.Flag("timeout", `timeout flag accept any input valid for time.ParseDuration.A duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("15m").String()
+	coverArgs.Timeout = coverCmd.Flag("timeout", `timeout flag accept any input valid for time.ParseDuration.A duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("15m").String()
 	coverArgs.Debug = coverCmd.Flag("debug", "in debug mode will logging steps of testing").Default("false").Bool()
 
 	// subtool controller
