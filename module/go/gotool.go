@@ -1,7 +1,9 @@
 package gotool
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	glog "github.com/snail007/gmc/module/log"
 	ghttp "github.com/snail007/gmc/util/http"
 	gmap "github.com/snail007/gmc/util/map"
@@ -15,20 +17,29 @@ import (
 
 var (
 	installPkg string
+	apiName    string
 	aliasData  = map[string]string{
 		"golint":   "golang.org/x/lint/golint",
 		"dlv":      "github.com/go-delve/delve/cmd/dlv",
 		"gomobile": "golang.org/x/mobile/cmd/gomobile;gomobile init",
 	}
 )
-
-func init() {
-	if len(os.Args) >= 3 && os.Args[1] == "go" && os.Args[2] == "install" {
+var checkArgs = func(subName string, callback func(arg string)) {
+	if len(os.Args) >= 3 && os.Args[1] == "go" && os.Args[2] == subName {
 		if len(os.Args) == 4 {
-			installPkg = os.Args[3]
+			callback(os.Args[3])
 			os.Args = os.Args[:3]
 		}
 	}
+}
+
+func init() {
+	checkArgs("install", func(arg string) {
+		installPkg = arg
+	})
+	checkArgs("api", func(arg string) {
+		apiName = arg
+	})
 }
 
 type GoToolArgs struct {
@@ -87,12 +98,48 @@ func (s *GoTool) Start(args interface{}) (err error) {
 			return fmt.Errorf("package required")
 		}
 		return s.install("")
+	case "api":
+		if apiName == "" || !strings.Contains(apiName, ".") {
+			return fmt.Errorf("api path required")
+		}
+		s.api()
 	}
 	return
 }
 
 func (s *GoTool) Stop() {
 	return
+}
+
+func (s *GoTool) api() {
+	info := strings.Split(apiName, ".")
+	path := info[0]
+	method := info[1]
+	queryURL := fmt.Sprintf("https://pkg.go.dev/%s", path)
+	client := ghttp.NewHTTPClient()
+	client.SetDNS("8.8.8.8:53")
+	client.SetProxyFromEnv(true)
+	d, err := client.Download(queryURL, time.Second*30, nil)
+	if err != nil {
+		glog.Errorf("fetch api info fail, maybe you need to set HTTP_PROXY=<PROXY_SERVER_URL> environment, access url error: %s", queryURL)
+	}
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(d))
+	if err != nil {
+		glog.Errorf("parse api info fail, error: %s,\ncontent: %s", err, string(d))
+	}
+	sel := doc.Find("#" + method)
+	if len(sel.Nodes) == 0 {
+		glog.Warnf("not found %s info in url: %s", apiName, queryURL)
+		return
+	}
+	exists := sel.Find(".Documentation-sinceVersionVersion")
+	if len(exists.Nodes) == 0 {
+		fmt.Println(apiName + " added in all go version")
+		return
+	}
+	label := sel.Find(".Documentation-sinceVersionLabel")
+	version := sel.Find(".Documentation-sinceVersionVersion")
+	fmt.Printf("%s %s %s\n", apiName, label.Text(), version.Text())
 }
 
 func (s *GoTool) do(c string) {
