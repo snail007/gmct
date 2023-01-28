@@ -116,7 +116,7 @@ func (s *Static) pack() (err error) {
 import gmchttpserver "github.com/snail007/gmc/http/server"
 
 func init(){
-	gmchttpserver.SetBinData(map[string]string{
+	gmchttpserver.SetBinBase64(map[string]string{
 
 {{HOLDER}}
 	})
