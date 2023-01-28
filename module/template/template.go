@@ -112,7 +112,7 @@ func (s *Template) pack() (err error) {
 import gmctemplate "github.com/snail007/gmc/http/template"
 
 func init(){
-	gmctemplate.SetBinData(map[string]string{
+	gmctemplate.SetBinBase64(map[string]string{
 
 {{HOLDER}}
 	})
