@@ -208,7 +208,7 @@ func main() {
 	_ = goToolCheckCMD
 	goToolInstallCMD := goToolCMD.Command("install", "go package install toolkit, and short names are supported: "+strings.Join(gotool.CmdList(), ", "))
 	_ = goToolInstallCMD
-	goToolAPICMD := goToolCMD.Command("api", "check the standard library api added in which go version, format is full package path of a method, for example: gmct go api net/http.Serve\ngmct go api io.ReadAll")
+	goToolAPICMD := goToolCMD.Command("api", "check the standard library api added in which go version, format is full package path of a method, for example: 'gmct go api net/http.Serve', 'gmct go api io.ReadAll'")
 	_ = goToolAPICMD
 
 	// sub tool install
