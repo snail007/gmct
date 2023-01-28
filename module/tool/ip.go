@@ -7,4 +7,3 @@ func (s *Tool) ip() {
 		fmt.Println(v)
 	}
 }
-

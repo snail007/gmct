@@ -18,6 +18,7 @@ import (
 	tlstool "github.com/snail007/gmct/module/tls"
 	toolx "github.com/snail007/gmct/module/tool"
 	"github.com/snail007/gmct/module/update"
+	gurl "github.com/snail007/gmct/module/url"
 	"github.com/snail007/gmct/module/view"
 	"os"
 	"strings"
@@ -69,6 +70,7 @@ func main() {
 	goToolArgs := gotool.NewGoToolArgs()
 	installToolArgs := installtool.NewInstallToolArgs()
 	tlsToolArgs := tlstool.NewTLSArgs()
+	urlArgs := gurl.NewArgs()
 	//all subtool defined here
 
 	// #2
@@ -187,10 +189,10 @@ func main() {
 	toolArgs.Download.DownloadDir = toolDownloadCMD.Flag("dir", "path to download all files").Default("download_files").Short('c').String()
 
 	// sub tool ssh
-	toolSsh := gmctApp.Command("ssh", "ssh tool, copy  file to or execute command on remote host")
-	sshArgs.File = toolSsh.Flag("copy", "<local_file>:<remote_file>, local file to copy").Short('c').String()
-	sshArgs.Command = toolSsh.Flag("cmd", "command to execute, or '@file' exec script file").Short('e').String()
-	sshArgs.SSHURL = toolSsh.Flag("url", "ssh info url").Short('u').String()
+	toolSSH := gmctApp.Command("ssh", "ssh tool, copy  file to or execute command on remote host")
+	sshArgs.File = toolSSH.Flag("copy", "<local_file>:<remote_file>, local file to copy").Short('c').String()
+	sshArgs.Command = toolSSH.Flag("cmd", "command to execute, or '@file' exec script file").Short('e').String()
+	sshArgs.SSHURL = toolSSH.Flag("url", "ssh info url").Short('u').String()
 
 	// sub tool update
 	updateCMD := gmctApp.Command("update", "update gmct to the latest version")
@@ -230,6 +232,11 @@ func main() {
 	tlsToolArgs.Save.Proxy = tlsSaveCMD.Flag("proxy", "proxy URL connect to address of tls target, example: http://127.0.0.1:8080").Short('p').Default("").String()
 	tlsToolArgs.Save.ServerName = tlsSaveCMD.Flag("servername", "the server name sent to tls server").Short('s').Default("").String()
 	tlsToolArgs.Save.FolderName = tlsSaveCMD.Flag("name", "save certificate folder name").Short('n').Default("").String()
+
+	// subtool url
+	urlCmd := gmctApp.Command("url", "url toolkit")
+	urlArgs.EncodeStr = urlCmd.Flag("encode", "escape the string").Short('e').Default("").String()
+	urlArgs.DecodeStr = urlCmd.Flag("decode", "unescape the string").Short('d').Default("").String()
 
 	//check command line args
 	if len(os.Args) == 0 {
@@ -323,6 +330,10 @@ func main() {
 		tlsToolArgs.SubName = &subToolSubName
 		args = tlsToolArgs
 		gmcToolObj = tlstool.NewTLS()
+	case "url":
+		urlArgs.SubName = &subToolSubName
+		args = urlArgs
+		gmcToolObj = gurl.New()
 	default:
 		fmt.Printf("sub command '%s' not found\n", subToolName)
 		return

@@ -114,10 +114,10 @@ func (s *Update) Start(args interface{}) (err error) {
 	switch runtime.GOOS {
 	case "windows":
 		k = "windows-amd64"
- 		ext = ".exe"
- 	case "darwin":
+		ext = ".exe"
+	case "darwin":
 		k = "mac-amd64"
- 	default:
+	default:
 		switch runtime.GOARCH {
 		case "arm":
 			k = "linux-arm-v5"

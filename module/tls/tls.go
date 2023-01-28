@@ -171,7 +171,7 @@ func (s *TLS) save() {
 		gfile.Write(filepath.Join(folderName, n+".crt"), pemTxt, false)
 	}
 	gfile.Write(filepath.Join(folderName, "all.crt"), buf.Bytes(), false)
-	glog.Infof("SAVE TO %s SUCCESS!",folderName)
+	glog.Infof("SAVE TO %s SUCCESS!", folderName)
 	return
 }
 

@@ -89,9 +89,9 @@ func parseCert(cert *x509.Certificate) (certInfo, error) {
 func (ci certInfo) String() string {
 	certInfoStr := make([]string, 0)
 	order := []string{"Subject", "DNSNames", "NotBefore", "NotAfter",
-		"IsCA","Issuer","SerialNumber","Version", "SubjectKeyId", "AuthorityKeyId",
-		"KeyUsage", "ExtKeyUsage","EmailAddresses", "IPAddresses", "URIs","CRLDistributionPoints",
-		"PublicKeyAlgorithm", "PublicKey", "SignatureAlgorithm","Signature"}
+		"IsCA", "Issuer", "SerialNumber", "Version", "SubjectKeyId", "AuthorityKeyId",
+		"KeyUsage", "ExtKeyUsage", "EmailAddresses", "IPAddresses", "URIs", "CRLDistributionPoints",
+		"PublicKeyAlgorithm", "PublicKey", "SignatureAlgorithm", "Signature"}
 	for _, o := range order {
 		val, ok := ci[o]
 		if ok {

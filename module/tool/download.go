@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	defaultConfigName = ".gmct_download"
+	defaultConfigName = ".gmct/download"
 	netIPFilterEnvKey = "GMCT_NET_IP_FILTER"
 	netIPFilter       = map[string]bool{}
 )
@@ -378,13 +378,11 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 		if answers.Index == 0 {
 			//download all
 			return foundFiles[1:]
-		} else {
-			//select a file
-			return []*serverFileItem{foundFiles[answers.Index]}
 		}
-	} else {
-		return foundFiles
+		//select a file
+		return []*serverFileItem{foundFiles[answers.Index]}
 	}
+	return foundFiles
 }
 
 // 2

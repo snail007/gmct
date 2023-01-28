@@ -214,9 +214,11 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 	}
 	return ranges, nil
 }
+
 var errNoOverlap = errors.New("invalid range: failed to overlap")
 
 const sniffLen = 512
+
 func serveContent(w http.ResponseWriter, r *http.Request, name string, modtime time.Time, sizeFunc func() (int64, error), content io.ReadSeeker) {
 	setLastModified(w, modtime)
 	done, rangeReq := checkPreconditions(w, r, modtime)
@@ -368,6 +370,7 @@ func rangesMIMESize(ranges []httpRange, contentType string, contentSize int64) (
 	encSize += int64(w)
 	return
 }
+
 type countingWriter int64
 
 func (w *countingWriter) Write(p []byte) (n int, err error) {
@@ -437,10 +440,9 @@ func checkPreconditions(w http.ResponseWriter, r *http.Request, modtime time.Tim
 		if r.Method == "GET" || r.Method == "HEAD" {
 			writeNotModified(w)
 			return true, ""
-		} else {
-			w.WriteHeader(http.StatusPreconditionFailed)
-			return true, ""
 		}
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return true, ""
 	case condNone:
 		if checkIfModifiedSince(r, modtime) == condFalse {
 			writeNotModified(w)
@@ -526,9 +528,8 @@ func checkIfRange(w http.ResponseWriter, r *http.Request, modtime time.Time) con
 	if etag != "" {
 		if etagStrongMatch(etag, w.Header().Get("Etag")) {
 			return condTrue
-		} else {
-			return condFalse
 		}
+		return condFalse
 	}
 	// The If-Range value is typically the ETag value, but it may also be
 	// the modtime date. See golang.org/issue/8367.
@@ -555,6 +556,7 @@ type dirEntryDirs []fs.DirEntry
 func (d dirEntryDirs) len() int          { return len(d) }
 func (d dirEntryDirs) isDir(i int) bool  { return d[i].IsDir() }
 func (d dirEntryDirs) name(i int) string { return d[i].Name() }
+
 type fileInfoDirs []fs.FileInfo
 
 func (d fileInfoDirs) len() int          { return len(d) }
@@ -598,6 +600,7 @@ func dirList(w http.ResponseWriter, r *http.Request, f http.File) {
 	}
 	fmt.Fprintf(w, "</pre>\n")
 }
+
 var htmlReplacer = strings.NewReplacer(
 	"&", "&amp;",
 	"<", "&lt;",
@@ -607,6 +610,7 @@ var htmlReplacer = strings.NewReplacer(
 	// "&#39;" is shorter than "&apos;" and apos was not in HTML until HTML5.
 	"'", "&#39;",
 )
+
 func setLastModified(w http.ResponseWriter, modtime time.Time) {
 	if !isZeroTime(modtime) {
 		w.Header().Set("Last-Modified", modtime.UTC().Format(http.TimeFormat))
@@ -651,6 +655,7 @@ func checkIfModifiedSince(r *http.Request, modtime time.Time) condResult {
 }
 
 var unixEpochTime = time.Unix(0, 0)
+
 type condResult int
 
 const (

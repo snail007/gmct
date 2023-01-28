@@ -101,5 +101,3 @@ func (s *Tool) Start(args interface{}) (err error) {
 func (s *Tool) Stop() {
 	return
 }
-
-

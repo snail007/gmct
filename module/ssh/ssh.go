@@ -221,8 +221,7 @@ func (s *Ssh) client() (client *ssh.Client, err error) {
 			return nil, err
 		}
 		return ssh.NewClient(c, chans, reqs), nil
-	} else {
-		client, err = ssh.Dial("tcp", s.args.SshURL.Host, cfg)
 	}
+	client, err = ssh.Dial("tcp", s.args.SshURL.Host, cfg)
 	return
 }

@@ -141,9 +141,8 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 	err = command.Run()
 	if err != nil {
 		return fmt.Errorf("install FAIL, ERROR: %s", err)
-	} else {
-		glog.Infof("[ %s ] install DONE.", installPkg)
 	}
+	glog.Infof("[ %s ] install DONE.", installPkg)
 	return
 }
 

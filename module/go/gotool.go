@@ -9,6 +9,7 @@ import (
 	gmap "github.com/snail007/gmc/util/map"
 	goinstall "github.com/snail007/gmct/scripts/go/install"
 	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/util/config"
 	"os"
 	"os/exec"
 	"strings"
@@ -73,8 +74,33 @@ func (s *GoTool) Start(args interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	lintCmd := `golint ./... | grep -v "vendor/" | grep -v "receiver name should be a reflection of its identity" | grep -v "should have comment"| grep -v "don't use underscores in Go names"`
-	vetCmd := `go vet ./... 2>&1 | grep -v "vendor/" | grep -v "should have signature"`
+	lintSkipWords := []string{
+		"vendor/",
+		"receiver name should be a reflection of its identity",
+		"should have comment",
+		"string as key in context.WithValue",
+		"comment on exported function",
+		"don't use underscores in Go names",
+		"a blank import should be only in a main or test package",
+		"_test.go:",
+	}
+	lintSkipWords = append(lintSkipWords, config.Options.GetStringSlice("go.lint.skip")...)
+	lintCmd := "golint -min_confidence 0.9 ./... "
+	for _, v := range lintSkipWords {
+		lintCmd += "| grep -v \"" + v + "\" "
+	}
+	vetSkipWords := []string{
+		"vendor/",
+		"should have signature",
+		"_test.go:",
+		"^# ",
+		"possible misuse of",
+	}
+	vetSkipWords = append(vetSkipWords, config.Options.GetStringSlice("go.vet.skip")...)
+	vetCmd := "go vet ./... 2>&1 "
+	for _, v := range vetSkipWords {
+		vetCmd += "| grep -v \"" + v + "\" "
+	}
 	fmtCmd := `gofmt -s -w ./`
 	switch *s.args.SubName {
 	case "lint", "check":
@@ -82,17 +108,25 @@ func (s *GoTool) Start(args interface{}) (err error) {
 			s.install("golang.org/x/lint/golint")
 		}
 	}
+	goodCode := "^_^ The project has a good coding. ^_^"
 	switch *s.args.SubName {
 	case "lint":
-		s.do(lintCmd)
+		if !s.do(lintCmd) {
+			fmt.Println(goodCode)
+		}
 	case "vet":
-		s.do(vetCmd)
+		if !s.do(vetCmd) {
+			fmt.Println(goodCode)
+		}
 	case "fmt":
 		s.do(fmtCmd)
 	case "check":
-		s.do(lintCmd)
-		s.do(vetCmd)
+		a := s.do(lintCmd)
+		b := s.do(vetCmd)
 		s.do(fmtCmd)
+		if !a && !b {
+			fmt.Println(goodCode)
+		}
 	case "install":
 		if installPkg == "" {
 			return fmt.Errorf("package required")
@@ -142,12 +176,13 @@ func (s *GoTool) api() {
 	fmt.Printf("%s %s %s\n", apiName, label.Text(), version.Text())
 }
 
-func (s *GoTool) do(c string) {
+func (s *GoTool) do(c string) (hasOutput bool) {
 	cmd := exec.Command("bash", "-c", c)
 	b, _ := cmd.CombinedOutput()
 	if len(b) > 0 {
 		fmt.Print(strings.Trim(string(b), "\n \t"), "\n")
 	}
+	hasOutput = len(bytes.Trim(b, "\r\n")) > 0
 	return
 }
 
