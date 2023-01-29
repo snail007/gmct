@@ -22,7 +22,7 @@ func init() {
 		file = v
 	}
 	if !gfile.Exists(file) {
-		os.Mkdir(filepath.Dir(file), 700)
+		os.Mkdir(filepath.Dir(file), 0755)
 		gfile.Write(file, tpl, false)
 	}
 	Options = gconfig.New()
@@ -30,6 +30,6 @@ func init() {
 	Options.SetConfigType("toml")
 	err := Options.ReadInConfig()
 	if err != nil {
-		glog.Errorf("parse config file [%s] error: %s\nplease remove it or modify it correctly", file, err)
+		glog.Warnf("parse config file [%s] error: %s\nplease remove it or modify it correctly", file, err)
 	}
 }

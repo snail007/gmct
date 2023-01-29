@@ -8,15 +8,15 @@ import (
 	"strings"
 )
 
-type ViewArgs struct {
+type Args struct {
 	ForceCreate    *bool
 	SubName        *string
 	Table          *string
 	ControllerPath *string
 }
 
-func NewViewArgs() ViewArgs {
-	return ViewArgs{
+func NewViewArgs() Args {
+	return Args{
 		SubName:        new(string),
 		ControllerPath: new(string),
 		Table:          new(string),
@@ -26,7 +26,7 @@ func NewViewArgs() ViewArgs {
 
 type View struct {
 	tool.GMCTool
-	args ViewArgs
+	args Args
 }
 
 func NewView() *View {
@@ -34,7 +34,7 @@ func NewView() *View {
 }
 
 func (s *View) init(args0 interface{}) (err error) {
-	s.args = args0.(ViewArgs)
+	s.args = args0.(Args)
 	if *s.args.ControllerPath == "" {
 		return fmt.Errorf("option '-n' required")
 	}
