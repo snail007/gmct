@@ -87,7 +87,7 @@ func (s *TLS) init(args0 interface{}) (err error) {
 		var err error
 		s.jumper, err = gproxy.NewJumper(proxy, s.timeout)
 		if err != nil {
-			glog.Error(err)
+			glog.Panic(err)
 		}
 	}
 	return
@@ -114,12 +114,12 @@ func (s *TLS) info() {
 	if *s.cfg.Info.Addr != "" {
 		info, err := getTLSInfo(s.getConnectionState(*s.cfg.Info.Addr, *s.cfg.Info.ServerName))
 		if err != nil {
-			glog.Error(err)
+			glog.Panic(err)
 		}
 		fmt.Println(info.String())
 	} else if *s.cfg.Info.File != "" {
 		if !gfile.Exists(*s.cfg.Info.File) {
-			glog.Panicf("file not found: %s", *s.cfg.Info.File)
+			glog.Fatalf("file not found: %s", *s.cfg.Info.File)
 		}
 		var blocks []byte
 		rest := gfile.Bytes(*s.cfg.Info.File)
@@ -127,7 +127,7 @@ func (s *TLS) info() {
 			var block *pem.Block
 			block, rest = pem.Decode(rest)
 			if block == nil {
-				glog.Error("Error: PEM not parsed")
+				glog.Panic("Error: PEM not parsed")
 				break
 			}
 			blocks = append(blocks, block.Bytes...)
@@ -143,7 +143,7 @@ func (s *TLS) info() {
 
 		peerCerts, err := parseCerts(bs)
 		if err != nil {
-			glog.Error(err)
+			glog.Panic(err)
 		}
 		fmt.Println(peerCerts)
 	}
@@ -193,13 +193,13 @@ func (s *TLS) getConnectionState(addr, serverName string) statusWrapper {
 		tcpConn, err = net.DialTimeout("tcp", addr, s.timeout)
 	}
 	if err != nil {
-		glog.Error(errors.Wrap(err, "dial tcp fail"))
+		glog.Panic(errors.Wrap(err, "dial tcp fail"))
 	}
 	defer tcpConn.Close()
 	tlsConn := tls.Client(tcpConn, cfg)
 	err = tlsConn.Handshake()
 	if err != nil {
-		glog.Error(errors.Wrap(err, "tls handshake fail, maybe not a tls server?"))
+		glog.Panic(errors.Wrap(err, "tls handshake fail, maybe not a tls server?"))
 	}
 	return statusWrapper{
 		ConnectionState:   tlsConn.ConnectionState(),

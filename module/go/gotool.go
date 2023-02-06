@@ -155,11 +155,11 @@ func (s *GoTool) api() {
 	client.SetProxyFromEnv(true)
 	d, err := client.Download(queryURL, time.Second*30, nil)
 	if err != nil {
-		glog.Panicf("fetch api info fail, maybe you need to set HTTP_PROXY=<PROXY_SERVER_URL> environment, access url error: %s", queryURL)
+		glog.Fatalf("fetch api info fail, maybe you need to set HTTP_PROXY=<PROXY_SERVER_URL> environment, access url error: %s", queryURL)
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(d))
 	if err != nil {
-		glog.Panicf("parse api info fail, error: %s,\ncontent: %s", err, string(d))
+		glog.Fatalf("parse api info fail, error: %s,\ncontent: %s", err, string(d))
 	}
 	sel := doc.Find("#" + method)
 	if len(sel.Nodes) == 0 {

@@ -164,5 +164,5 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 		}
 		ServeFile(w, r, reqPathAbs)
 	}))
-	glog.Error(http.ListenAndServe(*s.args.HTTP.Addr, nil))
+	glog.Panic(http.ListenAndServe(*s.args.HTTP.Addr, nil))
 }
