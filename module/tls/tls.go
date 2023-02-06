@@ -119,7 +119,7 @@ func (s *TLS) info() {
 		fmt.Println(info.String())
 	} else if *s.cfg.Info.File != "" {
 		if !gfile.Exists(*s.cfg.Info.File) {
-			glog.Errorf("file not found: %s", *s.cfg.Info.File)
+			glog.Panicf("file not found: %s", *s.cfg.Info.File)
 		}
 		var blocks []byte
 		rest := gfile.Bytes(*s.cfg.Info.File)

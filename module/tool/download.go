@@ -113,7 +113,7 @@ func (s *Tool) download() {
 			dir, _ := filepath.Abs(filepath.Dir(basename))
 			err := os.MkdirAll(dir, 0755)
 			if err != nil {
-				glog.Errorf("create directory [%s] fail, error: %s", dir, err)
+				glog.Panicf("create directory [%s] fail, error: %s", dir, err)
 			}
 		}
 	}
@@ -135,7 +135,7 @@ func (s *Tool) download() {
 			dir, _ := filepath.Abs(filepath.Join(*s.args.Download.DownloadDir, strings.TrimPrefix(filepath.Dir(foundFile.url.Path), "/")))
 			err := os.MkdirAll(dir, 0755)
 			if err != nil {
-				glog.Errorf("create directory [%s] fail, error: %s", dir, err)
+				glog.Panicf("create directory [%s] fail, error: %s", dir, err)
 			}
 			s.downloadFile(i+1, total, basename, foundFile, dir)
 		}
@@ -150,7 +150,7 @@ func (s *Tool) getServerURL() *serverItem {
 		for _, v := range s.getSubnetArr() {
 			n = append(n, v+"0")
 		}
-		glog.Errorf("none gmct http server found, scan: %d, net: %v", len(s.getScanURLs()), n)
+		glog.Panicf("none gmct http server found, scan: %d, net: %v", len(s.getScanURLs()), n)
 	}
 	serverURL := gmctWebServerList[0]
 	if len(gmctWebServerList) > 1 {
@@ -292,7 +292,7 @@ func (s *Tool) getSubnetArr() []string {
 	var checkNet = func(ip string) string {
 		n := net.ParseIP(ip)
 		if n == nil || n.To4() == nil {
-			glog.Errorf("parse network error, %s", ip)
+			glog.Panicf("parse network error, %s", ip)
 		}
 		return strings.Join(strings.Split(ip, ".")[:3], ".") + "."
 	}
@@ -321,13 +321,13 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 	var files []*serverFileItem
 	s.listFiles(serverItem, "", &files)
 	if len(files) == 0 {
-		glog.Errorf("no files found on the specify server, %s", serverItem.url.Host)
+		glog.Panicf("no files found on the specify server, %s", serverItem.url.Host)
 	}
 	// filter files
 	toMatch := *s.args.Download.File
 	g, err := glob.Compile(toMatch)
 	if err != nil {
-		glog.Errorf("parse file name [%s] error: %s", toMatch, err)
+		glog.Panicf("parse file name [%s] error: %s", toMatch, err)
 	}
 	for _, f := range files {
 		basename := filepath.Base(f.url.Path)
@@ -340,7 +340,7 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 		}
 	}
 	if len(foundFiles) == 0 {
-		glog.Errorf("no matched file found on the specify server, %s, %s", serverItem.url.Host, toMatch)
+		glog.Panicf("no matched file found on the specify server, %s, %s", serverItem.url.Host, toMatch)
 	}
 
 	if len(foundFiles) > 1 {
