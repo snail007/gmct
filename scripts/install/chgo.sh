@@ -10,27 +10,27 @@ cat >/usr/local/bin/chgo<<EOF
 #!/usr/bin/env bash
 GO_VER_DIR="/usr/local/"
 GO_ROOT="/usr/local/go"
-VER="$1"
+VER="\$1"
 
-if [ -z "$VER" ]; then
+if [ -z "\$VER" ]; then
   echo -e "chgo <go-main-version>\nExample: chgo 1.18"
   exit
 fi
-if [ -e "$GO_ROOT" ];then
-  if [ ! -L "$GO_ROOT" ];then
-    echo "GO_ROOT: $GO_ROOT is not a symbolic link."
+if [ -e "\$GO_ROOT" ];then
+  if [ ! -L "\$GO_ROOT" ];then
+    echo "GO_ROOT: \$GO_ROOT is not a symbolic link."
     exit
   fi
 fi
-newVer=$(ls $GO_VER_DIR|grep "go$VER"|tail -n 1)
-if [ -z "$newVer" ]; then
-  echo -e "none go found in: $GO_VER_DIR"
+newVer=\$(ls \$GO_VER_DIR|grep "go\$VER"|tail -n 1)
+if [ -z "\$newVer" ]; then
+  echo -e "none go found in: \$GO_VER_DIR"
   exit
 fi
 
-sudo rm "$GO_ROOT"
-sudo ln -s "$GO_VER_DIR$newVer" $GO_ROOT
-echo "switch to $(go version)"
+sudo rm "\$GO_ROOT"
+sudo ln -s "\$GO_VER_DIR\$newVer" \$GO_ROOT
+echo "switch to \$(go version)"
 EOF
 chmod +x /usr/local/bin/chgo
   echo "install success at path: /usr/local/bin/chgo"
