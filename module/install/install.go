@@ -18,7 +18,7 @@ import (
 var (
 	installBaseURLEnvKey  = "GMCT_INSTALL_BASE_URL"
 	installPkg            string
-	defaultInstallBaseURL = "https://mirrors.host900.com/https://github.host900.com/snail007/gmct/raw/master/scripts/install/"
+	defaultInstallBaseURL = "https://mirrors.host900.com/https://raw.githubusercontent.com/snail007/gmct/master/scripts/install/"
 )
 
 func init() {
