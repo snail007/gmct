@@ -15,28 +15,30 @@ import (
 )
 
 type DockerArgs struct {
-	SubName *string
-	DArg_v  *[]string
-	DArg_e  *[]string
-	DArg_p  *[]string
-	CMD     *string
-	Image   *string
-	IsDebug *bool
-	Golang  *bool
-	WorkDir *string
+	SubName   *string
+	DArg_v    *[]string
+	DArg_e    *[]string
+	DArg_p    *[]string
+	DArg_name *string
+	CMD       *string
+	Image     *string
+	IsDebug   *bool
+	Golang    *bool
+	WorkDir   *string
 }
 
 func NewDockerArgs() DockerArgs {
 	return DockerArgs{
-		SubName: new(string),
-		DArg_v:  new([]string),
-		DArg_e:  new([]string),
-		DArg_p:  new([]string),
-		CMD:     new(string),
-		Image:   new(string),
-		IsDebug: new(bool),
-		Golang:  new(bool),
-		WorkDir: new(string),
+		SubName:   new(string),
+		DArg_v:    new([]string),
+		DArg_e:    new([]string),
+		DArg_p:    new([]string),
+		CMD:       new(string),
+		Image:     new(string),
+		IsDebug:   new(bool),
+		Golang:    new(bool),
+		WorkDir:   new(string),
+		DArg_name: new(string),
 	}
 }
 
@@ -98,8 +100,13 @@ func (s *Docker) Start(args interface{}) (err error) {
 	if runtime.GOOS == "linux" {
 		net = "--network=host"
 	}
-	cmdStr := fmt.Sprintf("docker run -t --rm -w %s %s %s %s %s %s %s",
+	name := ""
+	if len(*s.args.DArg_name) > 0 {
+		name = fmt.Sprintf("--name %s", *s.args.DArg_name)
+	}
+	cmdStr := fmt.Sprintf("docker run -t --rm -w %s %s %s %s %s %s %s %s",
 		*s.args.WorkDir,
+		name,
 		net,
 		strings.Join(*s.args.DArg_p, ""),
 		strings.Join(*s.args.DArg_e, ""),

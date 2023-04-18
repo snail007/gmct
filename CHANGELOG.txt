@@ -1,4 +1,10 @@
 GMCT更新日志
+v0.0.38
+1.docker子命令，新增指定容器name参数。
+
+v0.0.37
+1、新增install chgo
+
 v0.0.36
 1.新增url子命令，对字符串进行 url 编解码。
 2.template 适配最新gmc。

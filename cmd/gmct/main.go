@@ -155,6 +155,7 @@ func main() {
 	dockerArgs.DArg_v = dockerCmd.Flag("volume", "volume").Short('v').Strings()
 	dockerArgs.DArg_p = dockerCmd.Flag("port", "port").Short('p').Strings()
 	dockerArgs.DArg_e = dockerCmd.Flag("env", "environment variable").Short('e').Strings()
+	dockerArgs.DArg_name = dockerCmd.Flag("name", "set container name").Default("").Short('n').String()
 	dockerArgs.IsDebug = dockerCmd.Flag("debug", "debug output").Bool()
 	dockerArgs.Golang = dockerCmd.Flag("golang", "sets some golang environment variables").Short('g').Bool()
 	dockerArgs.WorkDir = dockerCmd.Flag("work", "set work dir").Default("/mnt").Short('w').String()
