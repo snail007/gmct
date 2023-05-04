@@ -143,6 +143,7 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 		case "http", "https":
 			c := ghttp.NewHTTPClient()
 			c.SetDNS("8.8.8.8:53")
+			c.SetProxyFromEnv(true)
 			b, code, _, e := c.Get(u, time.Second*30, nil, nil)
 			if code != 200 {
 				m := ""

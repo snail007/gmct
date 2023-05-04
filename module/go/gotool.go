@@ -214,6 +214,7 @@ func (s *GoTool) install(pkg string) (err error) {
 			u := "https://mirrors.host900.com/https://raw.githubusercontent.com/snail007/gmct/master/scripts/go/install/" + installPkg + ".sh"
 			c := ghttp.NewHTTPClient()
 			c.SetDNS("8.8.8.8:53")
+			c.SetProxyFromEnv(true)
 			b, code, _, e := c.Get(u, time.Second*30, nil, nil)
 			if code != 200 {
 				m := ""

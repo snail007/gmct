@@ -10,7 +10,6 @@ import (
 	gexec "github.com/snail007/gmc/util/exec"
 	ghttp "github.com/snail007/gmc/util/http"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -41,9 +40,12 @@ func NewGoInstaller() *GoInstaller {
 }
 
 func (s *GoInstaller) Install(version string) error {
-	tr, err := ghttp.NewTriableRequestByURL(nil, http.MethodGet, indexURL, 2, time.Second*10, nil, nil)
+	client := ghttp.NewHTTPClient()
+	client.SetProxyFromEnv(true)
+	client.SetDNS("8.8.8.8:53")
+	tr, err := client.NewTriableGet(indexURL, 2, time.Second*10, nil, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("get download info fail, error: %s, maybe you need to set a proxies enviroment variable HTTP_PROXY=<foo_host>:<foo_port>", err)
 	}
 	resp := tr.Execute()
 	if resp.Err() != nil {
@@ -76,7 +78,7 @@ func (s *GoInstaller) Install(version string) error {
 		return fmt.Errorf("last version of %s not found", version)
 	}
 	URL := fmt.Sprintf(gzURLTemplate, finalVersion, runtime.GOOS, runtime.GOARCH)
-	tr, err = ghttp.NewTriableRequestByURL(nil, http.MethodHead, URL, 2, time.Second*10, nil, nil)
+	tr, err = client.NewTriableGet(URL, 2, time.Second*10, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -111,7 +113,7 @@ func (s *GoInstaller) Install(version string) error {
 		os.Remove(filename)
 		os.RemoveAll("go.tmp")
 	}()
-	_, err = ghttp.DownloadToWriter(URL, time.Hour, nil, nil, io.MultiWriter(tfile, bar))
+	_, err = client.DownloadToWriter(URL, time.Hour, nil, nil, io.MultiWriter(tfile, bar))
 	if err != nil {
 		return err
 	}
@@ -130,7 +132,7 @@ mv go  ` + targetDir + `
 	if err != nil {
 		return err
 	}
-	fmt.Println("\n" + targetDir + " installed, switch exec: chgo " + version)
+	fmt.Println("\n[" + targetDir + "] installed, switch exec: chgo " + version)
 	return nil
 }
 

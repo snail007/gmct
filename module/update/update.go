@@ -49,6 +49,8 @@ func NewUpdate() *Update {
 
 func (s *Update) init(args0 interface{}) (err error) {
 	s.args = args0.(UpdateArgs)
+	ghttp.Client.SetDNS("8.8.8.8:53")
+	ghttp.Client.SetProxyFromEnv(true)
 	return
 }
 
