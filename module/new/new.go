@@ -234,7 +234,7 @@ func (s *Newx) getAdmData() (data []byte, err error) {
 		infoURL := "https://mirrors.host900.com/https://api.github.com/repos/snail007/mygmcadmin/releases/latest"
 		downloadURL := "https://mirrors.host900.com/https://github.com/snail007/mygmcadmin/archive/refs/tags/%s.tar.gz"
 		client := ghttp.NewHTTPClient()
-		b, _, _, err := client.Get(infoURL, time.Second*30, nil)
+		b, _, _, err := client.Get(infoURL, time.Second*30, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -245,7 +245,7 @@ func (s *Newx) getAdmData() (data []byte, err error) {
 		}
 		tag := resp.TagName
 		downloadURL = fmt.Sprintf(downloadURL, tag)
-		b, _, _, err = client.Get(downloadURL, time.Minute*15, nil)
+		b, _, _, err = client.Get(downloadURL, time.Minute*15, nil, nil)
 		if err != nil {
 			return nil, err
 		}

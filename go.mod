@@ -7,9 +7,10 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/gobwas/glob v0.2.3
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
+	github.com/kr/pretty v0.3.1
 	github.com/pkg/errors v0.8.1
 	github.com/schollz/progressbar/v3 v3.8.1
-	github.com/snail007/gmc v0.0.0-20230206035026-92b66f93a681
+	github.com/snail007/gmc v0.0.0-20230504015013-38dbd2e4062b
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
@@ -18,4 +19,4 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
-//replace github.com/snail007/gmc => ../gmc
+replace github.com/snail007/gmc => ../gmc

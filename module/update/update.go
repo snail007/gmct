@@ -59,7 +59,7 @@ func (s *Update) Start(args interface{}) (err error) {
 	}
 	currentVersion := tool.Version
 	// check
-	d, err := ghttp.Download(updateAPIURL, time.Second*30, nil)
+	d, _, err := ghttp.Download(updateAPIURL, time.Second*30, nil, nil)
 	if err != nil {
 		return
 	}
@@ -142,7 +142,7 @@ func (s *Update) Start(args interface{}) (err error) {
 			BarStart:      "[",
 			BarEnd:        "]",
 		}))
-	err = ghttp.DownloadToWriter(gzURL, time.Minute*5, nil, io.MultiWriter(tfile, bar))
+	_, err = ghttp.DownloadToWriter(gzURL, time.Minute*5, nil, nil, io.MultiWriter(tfile, bar))
 	if err != nil {
 		return
 	}

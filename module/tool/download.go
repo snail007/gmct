@@ -208,7 +208,7 @@ func (s *Tool) getWebServerList() []*serverItem {
 			defer g.Done()
 			url, _ := URL.Parse(scanURL)
 			user, pass, client := s.getDownloadHTTPClient(nil, url)
-			_, _, resp, e := client.Get(scanURL, time.Second*time.Duration(*s.args.Download.Timeout), nil)
+			_, _, resp, e := client.Get(scanURL, time.Second*time.Duration(*s.args.Download.Timeout), nil, nil)
 			if e != nil {
 				return
 			}
@@ -388,7 +388,7 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 // 2
 func (s *Tool) listFiles(server *serverItem, path string, files *[]*serverFileItem) {
 	_, _, client := s.getDownloadHTTPClient(server.auth, nil)
-	body, _, resp, e := client.Get(server.url.String()+path, time.Second*time.Duration(*s.args.Download.Timeout), nil)
+	body, _, resp, e := client.Get(server.url.String()+path, time.Second*time.Duration(*s.args.Download.Timeout), nil, nil)
 	if e != nil {
 		glog.Warnf("fetch [%s] error: %s", server.url, e)
 		return

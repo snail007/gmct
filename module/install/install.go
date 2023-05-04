@@ -5,6 +5,8 @@ import (
 	URL "net/url"
 	"os"
 	"os/exec"
+	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -64,13 +66,43 @@ func (s *InstallTool) Start(args interface{}) (err error) {
 	if installPkg == "" {
 		return fmt.Errorf("install name required")
 	}
+	appVersion := ""
+	var installer APPInstaller
+	for k, v := range appInstallers {
+		if !strings.HasPrefix(installPkg, k) {
+			continue
+		}
+		if ok, _ := regexp.MatchString(`^\w+\d+\.\d+`, installPkg); installPkg != k && !ok {
+			continue
+		}
+		appVersion = strings.TrimPrefix(installPkg, k)
+		installer = v
+		s.checkRoot(v)
+		break
+	}
 	switch s.args.Action {
 	case "install":
+		if installer != nil {
+			return installer.Install(appVersion)
+		}
 		return s.do(s.args.Action, "", false)
 	case "install-force":
+		if installer != nil {
+			return installer.InstallForce(appVersion)
+		}
 		return s.do("install", "", true)
 	case "uninstall":
+		if installer != nil {
+			return installer.Uninstall(appVersion)
+		}
 		return s.do(s.args.Action, "", false)
+	}
+	return
+}
+
+func (s *InstallTool) checkRoot(installer APPInstaller) {
+	if installer.NeedRoot() && runtime.GOOS != "windows" && os.Getuid() != 0 {
+		glog.Fatal("install need root permission")
 	}
 	return
 }
@@ -111,7 +143,7 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 		case "http", "https":
 			c := ghttp.NewHTTPClient()
 			c.SetDNS("8.8.8.8:53")
-			b, code, _, e := c.Get(u, time.Second*30, nil)
+			b, code, _, e := c.Get(u, time.Second*30, nil, nil)
 			if code != 200 {
 				m := ""
 				if e != nil {
@@ -149,7 +181,10 @@ func (s *InstallTool) do(action, pkg string, force bool) (err error) {
 func (s *InstallTool) exportString() string {
 	env := []string{
 		"GOPROXY", "https://goproxy.io,direct",
-		"GONOSUMDB", "github.com,golang.org,gopkg.in"}
+		"GONOSUMDB", "github.com,golang.org,gopkg.in",
+		"GOOS", runtime.GOOS,
+		"GOARCH", runtime.GOARCH,
+	}
 	for i := 0; i < len(env)-1; i += 2 {
 		if os.Getenv(env[i]) == "" {
 			os.Setenv(env[i], env[i+1])

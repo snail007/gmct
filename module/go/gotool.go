@@ -153,7 +153,7 @@ func (s *GoTool) api() {
 	client := ghttp.NewHTTPClient()
 	client.SetDNS("8.8.8.8:53")
 	client.SetProxyFromEnv(true)
-	d, err := client.Download(queryURL, time.Second*30, nil)
+	d, _, err := client.Download(queryURL, time.Second*30, nil, nil)
 	if err != nil {
 		glog.Fatalf("fetch api info fail, maybe you need to set HTTP_PROXY=<PROXY_SERVER_URL> environment, access url error: %s", queryURL)
 	}
@@ -214,7 +214,7 @@ func (s *GoTool) install(pkg string) (err error) {
 			u := "https://mirrors.host900.com/https://raw.githubusercontent.com/snail007/gmct/master/scripts/go/install/" + installPkg + ".sh"
 			c := ghttp.NewHTTPClient()
 			c.SetDNS("8.8.8.8:53")
-			b, code, _, e := c.Get(u, time.Second*30, nil)
+			b, code, _, e := c.Get(u, time.Second*30, nil, nil)
 			if code != 200 {
 				m := ""
 				if e != nil {
