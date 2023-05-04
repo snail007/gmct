@@ -1,4 +1,9 @@
 GMCT更新日志
+v0.0.39
+1.install子命令，新增安装golang功能，可以安装每个主版本的最新版，例如：gmct install go1.20 就会安装最新的1.20.x版本。
+2.install子命令，新增配置go环境功能，例如：gmct install goenv 可以把GOROOT相关配置写入$HOME/.bash_profile文件。
+3.配合chgo，执行安装chgo， gmct install chgo。然后执行 chgo 1.20 就可以自由安装和切换多个go版本。
+
 v0.0.38
 1.docker子命令，新增指定容器name参数。
 
