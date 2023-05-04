@@ -28,7 +28,7 @@ if [ -z "\$newVer" ]; then
   exit
 fi
 
-sudo rm "\$GO_ROOT"
+sudo rm -f "\$GO_ROOT"
 sudo ln -s "\$GO_VER_DIR\$newVer" \$GO_ROOT
 echo "switch to \$(go version)"
 EOF
