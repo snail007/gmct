@@ -141,7 +141,10 @@ func (s *GoInstaller) InstallForce(version string) error {
 }
 
 func (s *GoInstaller) Uninstall(version string) error {
-	os.RemoveAll(filepath.Join(targetRootPath, "go"+version))
+	dirs, _ := filepath.Glob(targetRootPath + "/go" + version + "*")
+	for _, v := range dirs {
+		os.RemoveAll(v)
+	}
 	return nil
 }
 
