@@ -3,11 +3,13 @@ package tool
 import (
 	"bytes"
 	"fmt"
+	grand "github.com/snail007/gmc/util/rand"
 	"io"
 	"net"
 	"net/http"
 	URL "net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -498,8 +500,28 @@ func (s *Tool) confirmOverwrite(basename string) bool {
 	return true
 }
 func (s *Tool) downloadFile(i, total int, basename string, foundFile *serverFileItem, dir string) {
-	fmt.Println("downloading: " + foundFile.url.String())
-	req, _ := http.NewRequest("GET", foundFile.url.String(), nil)
+	downloadURL := foundFile.url.String()
+	fmt.Println("downloading: " + downloadURL)
+	_, err := exec.LookPath("axel")
+	if err == nil {
+		sid := fmt.Sprintf("/tmp/tmp_%d", grand.New().Int31()) + ".sh"
+		defer os.Remove(sid)
+		finalCmd := `#!/bin/bash
+axel $AXEL_ARGS "` + downloadURL + `"`
+		gfile.WriteString(sid, finalCmd, false)
+		fmt.Println("Command axel found and will be used to download, " +
+			"set AXEL_ARGS environment variable to pass the additional args to axel")
+		cmd := exec.Command("bash", sid)
+		cmd.Env = append(cmd.Env, "AXEL_ARGS="+os.Getenv("AXEL_ARGS"))
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		if err != nil {
+			fmt.Println("exec axel error: " + err.Error())
+		}
+		return
+	}
+	req, _ := http.NewRequest("GET", downloadURL, nil)
 	if req != nil && foundFile.server.auth != nil {
 		req.SetBasicAuth(foundFile.server.auth[0], foundFile.server.auth[1])
 	}
