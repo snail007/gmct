@@ -375,7 +375,7 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 		}{}
 		e := survey.Ask(qs, &answers)
 		if e != nil {
-			glog.Panic(e.Error())
+			glog.Error(e.Error())
 		}
 		if answers.Index == 0 {
 			//download all
@@ -492,7 +492,7 @@ func (s *Tool) confirmOverwrite(basename string) bool {
 		}{}
 		e := survey.Ask(qs, &answers)
 		if e != nil {
-			glog.Panic(e.Error())
+			glog.Error(e.Error())
 			return false
 		}
 		return answers.Confirm
