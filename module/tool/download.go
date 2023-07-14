@@ -360,6 +360,12 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 			Prompt: &survey.Select{
 				Message: "multiple matched files(" + fmt.Sprintf("%d", len(foundFiles)-1) + ") found, which file do you want to download?",
 				Options: selectIdx,
+				Filter: func(filter string, value string, index int) bool {
+					if index <= 0 {
+						return false
+					}
+					return strings.Contains(foundFiles[index].url.Path, filter)
+				},
 				Description: func(value string, index int) string {
 					if index == 0 {
 						return "download all files"
@@ -506,6 +512,7 @@ func (s *Tool) downloadFile(i, total int, basename string, foundFile *serverFile
 		sid := fmt.Sprintf("/tmp/tmp_%d", grand.New().Int31()) + ".sh"
 		defer os.Remove(sid)
 		finalCmd := `#!/bin/bash
+cd ` + dir + `
 axel $AXEL_ARGS "` + downloadURL + `"`
 		gfile.WriteString(sid, finalCmd, false)
 		fmt.Println("Command axel found and will be used to download, " +
