@@ -129,7 +129,7 @@ func (s *Tool) download() {
 				return
 			}
 		}
-		s.downloadFile(1, 1, basename, foundFile, "")
+		s.downloadFile(1, 1, basename, foundFile, "./")
 	} else {
 		total := len(foundFiles)
 		for i, foundFile := range foundFiles {
