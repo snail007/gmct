@@ -2,6 +2,7 @@ package tool
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	grand "github.com/snail007/gmc/util/rand"
 	"io"
@@ -513,7 +514,7 @@ func (s *Tool) downloadFile(i, total int, basename string, foundFile *serverFile
 		defer os.Remove(sid)
 		finalCmd := `#!/bin/bash
 cd ` + dir + `
-axel $AXEL_ARGS "` + downloadURL + `"`
+axel $AXEL_ARGS ` + s.basicAuthHeader(foundFile) + `"` + downloadURL + `"`
 		gfile.WriteString(sid, finalCmd, false)
 		fmt.Println("Command axel found and will be used to download, " +
 			"set AXEL_ARGS environment variable to pass the additional args to axel")
@@ -582,4 +583,12 @@ axel $AXEL_ARGS "` + downloadURL + `"`
 		return
 	}
 	glog.Info("download SUCCESS")
+}
+
+func (s *Tool) basicAuthHeader(foundFile *serverFileItem) string {
+	if foundFile.server.auth == nil {
+		return ""
+	}
+	auth := foundFile.server.auth[0] + ":" + foundFile.server.auth[1]
+	return fmt.Sprintf(` -H "Authorization: Basic %s" `, base64.StdEncoding.EncodeToString([]byte(auth)))
 }
