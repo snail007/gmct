@@ -1,4 +1,7 @@
 GMCT更新日志
+v0.0.42
+1.gmct dl axel适配认证。
+
 v0.0.40
 1.gmct dl新增axel适配。
 
