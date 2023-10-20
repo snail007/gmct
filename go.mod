@@ -9,9 +9,9 @@ require (
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/schollz/progressbar/v3 v3.8.1
-	github.com/snail007/gmc v0.0.0-20230504131414-ffc76b202d94
+	github.com/snail007/gmc v0.0.0-20230921044704-1a1ab51ae47d
 	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.0
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
 	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6

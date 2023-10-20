@@ -1,4 +1,7 @@
 GMCT更新日志
+v0.0.43
+1.新增扫描重复文件 gmct file_repeat,通过计算文件hash，找出重复的文件，可以指定参数是否删除。
+
 v0.0.42
 1.gmct dl axel适配认证。
 

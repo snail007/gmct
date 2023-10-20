@@ -7,6 +7,7 @@ import (
 	"github.com/snail007/gmct/module/controller"
 	"github.com/snail007/gmct/module/cover"
 	"github.com/snail007/gmct/module/docker"
+	"github.com/snail007/gmct/module/file_repeat"
 	gotool "github.com/snail007/gmct/module/go"
 	"github.com/snail007/gmct/module/gtag"
 	"github.com/snail007/gmct/module/i18n"
@@ -71,25 +72,26 @@ func main() {
 	installToolArgs := installtool.NewInstallToolArgs()
 	tlsToolArgs := tlstool.NewTLSArgs()
 	urlArgs := gurl.NewArgs()
-	//all subtool defined here
+	fileRepeatArgs := file_repeat.NewFileRepeatArgs()
+	//all command defined here
 
 	// #2
-	// subtool template
+	// command template
 	templateCmd := gmctApp.Command("tpl", "pack or clean templates go file")
 	templateArgs.Dir = templateCmd.Flag("dir", "template's template directory path, gmct will convert all template files in the folder to one go file").Default(".").String()
 	templateArgs.Extension = templateCmd.Flag("ext", "extension of template file").Default(".html").String()
 	templateArgs.Clean = templateCmd.Flag("clean", "clean packed file, if exists").Default("false").Bool()
 
-	// subtool static
+	// command static
 	staticCmd := gmctApp.Command("static", "pack or clean static go file")
 	staticArgs.Dir = staticCmd.Flag("dir", "template's static directory path, gmct will convert all static files in the folder to one go file").Default(".").String()
 	staticArgs.NotExtension = staticCmd.Flag("ext", "extension of exclude static files ").Default("").String()
 	staticArgs.Clean = staticCmd.Flag("clean", "clean packed file, if exists").Default("false").Bool()
 
-	// subtool run
+	// command run
 	gmctApp.Command("run", "run gmc project with auto build when project's file changed")
 
-	// subtool new
+	// command new
 	newCMD := gmctApp.Command("new", "new a gmc web/api project")
 	newArgsWebCMD := newCMD.Command("web", "new a gmc web project")
 	newArgsAPICMD := newCMD.Command("api", "new a gmc api project")
@@ -104,26 +106,26 @@ func main() {
 	// new admin args
 	newArgs.Admin.Package = newArgsAdminCMD.Flag("pkg", "package path of project in GOPATH").Default("").String()
 
-	// subtool i18n
+	// command i18n
 	i18nCmd := gmctApp.Command("i18n", "pack or clean i18n go file")
 	i18nArgs.Dir = i18nCmd.Flag("dir", "i18n's template directory path, gmct will convert all i18n files in the folder to one go file").Default(".").String()
 	i18nArgs.Clean = i18nCmd.Flag("clean", "clean packed file, if exists").Default("false").Bool()
 
-	// subtool controller
+	// command controller
 	controllerCmd := gmctApp.Command("controller", "create a controller in current directory")
 	controllerArgs.ControllerName = controllerCmd.Flag("name", "controller struct name").Short('n').Default("").String()
 	controllerArgs.TableName = controllerCmd.Flag("table", "table name without prefix").Short('t').Default("").String()
 	controllerArgs.ForceCreate = controllerCmd.Flag("force", "overwrite controller file, if it exists.").Short('f').Default("false").Bool()
 
-	// subtool model
+	// command model
 	modelCmd := gmctApp.Command("model", "create a model in current directory")
 	modelArgs.Table = modelCmd.Flag("table", "table name without suffix").Short('n').Default("").String()
 	modelArgs.ForceCreate = modelCmd.Flag("force", "overwrite model file, if it exists.").Short('f').Default("false").Bool()
 
-	// subtoolgtag
+	// command gtag
 	gmctApp.Command("gtag", "print go mod require tag of git repository in current directory")
 
-	// subtool test coverage
+	// command cover
 	coverCmd := gmctApp.Command("cover", "print go mod require tag of git repository in current directory")
 	coverArgs.Race = coverCmd.Flag("race", "enable race checking").Short('r').Default("false").Bool()
 	coverArgs.Verbose = coverCmd.Flag("verbose", "verbose testing logging output").Short('v').Default("false").Bool()
@@ -136,13 +138,13 @@ func main() {
 	coverArgs.Timeout = coverCmd.Flag("timeout", `timeout flag accept any input valid for time.ParseDuration.A duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`).Default("15m").String()
 	coverArgs.Debug = coverCmd.Flag("debug", "in debug mode will logging steps of testing").Default("false").Bool()
 
-	// subtool controller
+	// command view
 	viewCmd := gmctApp.Command("view", "create a controller in current directory")
 	viewArgs.ControllerPath = viewCmd.Flag("controller", "controller name in url path").Short('n').Default("").String()
 	viewArgs.Table = viewCmd.Flag("table", "table name without prefix").Short('t').Default("").String()
 	viewArgs.ForceCreate = viewCmd.Flag("force", "overwrite model file, if it exists.").Short('f').Default("false").Bool()
 
-	// subtool docker
+	// command docker
 	dockerCmd := gmctApp.Command("docker", "create a model in current directory, all run arguments after -- \n "+
 		"Example:  \n "+
 		"gmct docker -- ./foo -u xxx \n "+
@@ -160,12 +162,12 @@ func main() {
 	dockerArgs.Golang = dockerCmd.Flag("golang", "sets some golang environment variables").Short('g').Bool()
 	dockerArgs.WorkDir = dockerCmd.Flag("work", "set work dir").Default("/mnt").Short('w').String()
 
-	// subtool tool
+	// command tool
 	toolCMD := gmctApp.Command("tool", "gmct tools collection")
 
 	toolIPCMD := toolCMD.Command("ip", "ip toolkit")
 	_ = toolIPCMD
-	//tool http
+	//command tool http
 	toolHTTPCMD := toolCMD.Command("http", "simple http server")
 	toolHTTPCMD.Alias("web").Alias("www")
 	toolArgs.HTTP.Addr = toolHTTPCMD.Flag("addr", "simple http server listen on").Short('l').Default(":" + toolx.DefaultPort).String()
@@ -174,7 +176,7 @@ func main() {
 	toolArgs.HTTP.Upload = toolHTTPCMD.Flag("upload", "simple http server upload url path, default `random`").Short('u').String()
 	toolArgs.HTTP.ServerID = toolHTTPCMD.Flag("id", "set the server id name, example: server01").Short('i').String()
 
-	//tool download
+	//command tool download
 	toolDownloadCMD := toolCMD.Command("download", "download file from gmct simple http server")
 	toolDownloadCMD.Alias("dl")
 	toolArgs.Download.Net = toolDownloadCMD.Flag("net", "network to scan, format: 192.168.1.0").Short('n').Strings()
@@ -189,17 +191,17 @@ func main() {
 	toolArgs.Download.Timeout = toolDownloadCMD.Flag("timeout", "timeout seconds to connect to server").Default("3").Short('t').Int()
 	toolArgs.Download.DownloadDir = toolDownloadCMD.Flag("dir", "path to download all files").Default("download_files").Short('c').String()
 
-	// sub tool ssh
+	// command ssh
 	toolSSH := gmctApp.Command("ssh", "ssh tool, copy  file to or execute command on remote host")
 	sshArgs.File = toolSSH.Flag("copy", "<local_file>:<remote_file>, local file to copy").Short('c').String()
 	sshArgs.Command = toolSSH.Flag("cmd", "command to execute, or '@file' exec script file").Short('e').String()
 	sshArgs.SSHURL = toolSSH.Flag("url", "ssh info url").Short('u').String()
 
-	// sub tool update
+	// command update
 	updateCMD := gmctApp.Command("update", "update gmct to the latest version")
 	updateArgs.Force = updateCMD.Flag("force", "force update").Default("false").Short('f').Bool()
 
-	// sub tool gotool
+	// command go
 	goToolCMD := gmctApp.Command("go", "go development toolkit")
 	gotoolLintCMD := goToolCMD.Command("lint", "print go code issues are found. Install: go get -u golang.org/x/lint/golint")
 	_ = gotoolLintCMD
@@ -214,12 +216,12 @@ func main() {
 	goToolAPICMD := goToolCMD.Command("api", "check the standard library api added in which go version, format is full package path of a method, for example: 'gmct go api net/http.Serve', 'gmct go api io.ReadAll'")
 	_ = goToolAPICMD
 
-	// sub tool install
+	// command install
 	gmctApp.Command("install", "install toolkit")
 	gmctApp.Command("install-force", "install toolkit")
 	gmctApp.Command("uninstall", "uninstall staff installed by install toolkit")
 
-	// sub tool tls
+	// command tls
 	tlsToolCMD := gmctApp.Command("tls", "tls certificate toolkit")
 	//tls info
 	tlsInfoCMD := tlsToolCMD.Command("info", "print cert file or tls target host:port certificate info")
@@ -234,10 +236,18 @@ func main() {
 	tlsToolArgs.Save.ServerName = tlsSaveCMD.Flag("servername", "the server name sent to tls server").Short('s').Default("").String()
 	tlsToolArgs.Save.FolderName = tlsSaveCMD.Flag("name", "save certificate folder name").Short('n').Default("").String()
 
-	// subtool url
+	// command url
 	urlCmd := gmctApp.Command("url", "url toolkit")
 	urlArgs.EncodeStr = urlCmd.Flag("encode", "escape the string").Short('e').Default("").String()
 	urlArgs.DecodeStr = urlCmd.Flag("decode", "unescape the string").Short('d').Default("").String()
+
+	// command file_repeat
+	fileRepeatCmd := gmctApp.Command("file_repeat", "scan repeated files")
+	fileRepeatArgs.Delete = fileRepeatCmd.Flag("delete", "delete the repeat file").Bool()
+	fileRepeatArgs.Debug = fileRepeatCmd.Flag("debug", "output debug logging").Bool()
+	fileRepeatArgs.Dir = fileRepeatCmd.Flag("dir", "path to scan").Short('d').String()
+	fileRepeatArgs.Logfile = fileRepeatCmd.Flag("log", "log file to store scan result, if empty path, the default will be used").String()
+	fileRepeatArgs.Workers = fileRepeatCmd.Flag("workers", "delete the repeat file").Int()
 
 	//check command line args
 	if len(os.Args) == 0 {
@@ -335,6 +345,10 @@ func main() {
 		urlArgs.SubName = &subToolSubName
 		args = urlArgs
 		gmcToolObj = gurl.New()
+	case "file_repeat":
+		fileRepeatArgs.SubName = &subToolSubName
+		args = fileRepeatArgs
+		gmcToolObj = file_repeat.NewFileRepeat()
 	default:
 		fmt.Printf("sub command '%s' not found\n", subToolName)
 		return

@@ -1,3 +1,4 @@
 /.idea
 go.sum
 release-*
+repeat_result_*.txt
