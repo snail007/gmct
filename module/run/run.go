@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"github.com/snail007/gmc"
 	gmchook "github.com/snail007/gmc/util/process/hook"
-	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/module/module"
 	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -31,26 +32,35 @@ exclude_files=["gmcrun.toml"]
 exclude_dirs=["vendor"]`
 )
 
-type RunArgs struct {
-	Args    []string
-	SubName *string
-}
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		cmd := &cobra.Command{
+			Use:     "run",
+			Long:    "run gmc project with auto build when project's file changed",
+			Aliases: nil,
+			RunE: func(c *cobra.Command, a []string) error {
+				srv := NewRun()
+				srv.args = a
+				err := srv.init()
+				if err != nil {
+					return err
+				}
+				defer srv.Stop()
+				return srv.Start()
+			},
+		}
+		root.AddCommand(cmd)
 
-func NewRunArgs() RunArgs {
-	return RunArgs{
-		SubName: new(string),
-	}
+	})
 }
 
 type Run struct {
-	tool.GMCTool
 	onlyExts     map[string]bool
 	runName      string
 	proc         *exec.Cmd
 	restartSig   chan bool
 	stopCtx      context.Context
 	cancle       context.CancelFunc
-	cfg          RunArgs
 	buildEnv     []string
 	buildArgs    []string
 	excludeFiles map[string]bool
@@ -59,6 +69,7 @@ type Run struct {
 	monitorDirs  []string
 	workDir      string
 	cmd          string
+	args         []string
 }
 
 func NewRun() *Run {
@@ -74,9 +85,7 @@ func NewRun() *Run {
 	}
 }
 
-func (s *Run) init(args0 interface{}) (err error) {
-
-	s.cfg = args0.(RunArgs)
+func (s *Run) init() (err error) {
 	if !util.Exists(tplfilename) {
 		err = ioutil.WriteFile(tplfilename, []byte(tpl), 0755)
 		if err != nil {
@@ -144,11 +153,7 @@ func (s *Run) init(args0 interface{}) (err error) {
 	return
 }
 
-func (s *Run) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
+func (s *Run) Start() (err error) {
 	go s.scan()
 	go s.restartMonitor()
 	gmchook.WaitShutdown()
@@ -171,7 +176,7 @@ func (s *Run) build() {
 	}
 }
 func (s *Run) start() {
-	s.proc = exec.CommandContext(s.stopCtx, s.runName, s.cfg.Args...)
+	s.proc = exec.CommandContext(s.stopCtx, s.runName, s.args...)
 	s.proc.Env = os.Environ()
 	s.proc.Stderr = os.Stderr
 	s.proc.Stdin = os.Stdin

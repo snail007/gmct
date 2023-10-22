@@ -26,22 +26,22 @@ var (
 )
 
 type HTTPArgs struct {
-	Addr     *string
-	RootDir  *string
-	Auth     *[]string
-	Upload   *string
-	ServerID *string
+	Addr     string
+	RootDir  string
+	Auth     []string
+	Upload   string
+	ServerID string
 }
 
-func (s *Tool) httpServer() {
+func (s *Tool) httpServer(args HTTPArgs) {
 	fmt.Println(`>>> Simple HTTP Server`)
-	fmt.Println(`Web Root: ` + gfile.Abs(*s.args.HTTP.RootDir))
-	if id := *s.args.HTTP.ServerID; id != "" {
+	fmt.Println(`Web Root: ` + gfile.Abs(args.RootDir))
+	if id := args.ServerID; id != "" {
 		fmt.Println(`Server ID: ` + id)
 	}
 	fmt.Println(`Powered By: GMCT`)
 	fmt.Println(`Serve list:`)
-	_, port, _ := net.SplitHostPort(*s.args.HTTP.Addr)
+	_, port, _ := net.SplitHostPort(args.Addr)
 	for _, v := range getLocalIP() {
 		fmt.Printf("http://%s:%s/\n", v, port)
 	}
@@ -51,8 +51,8 @@ func (s *Tool) httpServer() {
 		return fmt.Sprintf("%x", b)
 	}
 	rid := randID(16)
-	if *s.args.HTTP.Upload != "" {
-		rid = *s.args.HTTP.Upload
+	if args.Upload != "" {
+		rid = args.Upload
 	}
 	fmt.Println(">>> Upload ")
 	for _, v := range getLocalIP() {
@@ -90,7 +90,7 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 			return
 		}
 		for _, f := range fs.File["file"] {
-			path := filepath.Join(*s.args.HTTP.RootDir, f.Filename)
+			path := filepath.Join(args.RootDir, f.Filename)
 			suffix := ""
 			if gfile.Exists(path) {
 				suffix = "." + randID(6)
@@ -119,7 +119,7 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 		ctx.Write(`<html><head><meta http-equiv="refresh" content="2;url=/"></head><body>success</body></html>`)
 	}))
 	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		root := *s.args.HTTP.RootDir
+		root := args.RootDir
 		reqPath := filepath.Clean(r.URL.Path)
 		rootAbs := gfile.Abs(root)
 		reqPathAbs := gfile.Abs(filepath.Join(root, reqPath))
@@ -127,14 +127,14 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if len(*s.args.HTTP.Auth) > 0 {
+		if len(args.Auth) > 0 {
 			authOkay := false
 			u, p, ok := r.BasicAuth()
 			if !ok {
 				sendAuth(w, r)
 				return
 			}
-			for _, v := range *s.args.HTTP.Auth {
+			for _, v := range args.Auth {
 				userInfo := strings.Split(v, ":")
 				if len(userInfo) != 2 {
 					continue
@@ -159,10 +159,10 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 		log.Printf("%s %s %s", ip, r.Method, r.URL.Path)
 		w.Header().Set(headerPoweredByKey, headerPoweredByValue)
 		w.Header().Set(headerVersionKey, tool.Version)
-		if id := *s.args.HTTP.ServerID; id != "" {
+		if id := args.ServerID; id != "" {
 			w.Header().Set(headerServerIDKey, id)
 		}
 		ServeFile(w, r, reqPathAbs)
 	}))
-	glog.Panic(http.ListenAndServe(*s.args.HTTP.Addr, nil))
+	glog.Panic(http.ListenAndServe(args.Addr, nil))
 }

@@ -6,6 +6,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/snail007/gmct/module/module"
+	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"net"
 	"os"
 	"path/filepath"
@@ -17,40 +20,80 @@ import (
 
 	glog "github.com/snail007/gmc/module/log"
 	gfile "github.com/snail007/gmc/util/file"
-	"github.com/snail007/gmct/tool"
 )
 
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		s := NewTLS()
+		cmd := &cobra.Command{
+			Use:  "tls",
+			Long: "tls certificate toolkit",
+			PersistentPreRunE: func(c *cobra.Command, a []string) error {
+				s.timeout = time.Second * 15
+				proxy := util.Must(c.Flags().GetString("proxy")).String()
+				if proxy != "" {
+					var err error
+					s.jumper, err = gproxy.NewJumper(proxy, s.timeout)
+					if err != nil {
+						glog.Fatal(err)
+					}
+				}
+				return nil
+			},
+		}
+		infoCMD := &cobra.Command{
+			Use:  "info",
+			Long: "print cert file or tls target host:port certificate info",
+			Run: func(c *cobra.Command, a []string) {
+				s.info(InfoArgs{
+					Addr:       util.Must(c.Flags().GetString("addr")).String(),
+					Proxy:      util.Must(c.Flags().GetString("proxy")).String(),
+					ServerName: util.Must(c.Flags().GetString("servername")).String(),
+					File:       util.Must(c.Flags().GetString("file")).String(),
+				})
+			},
+		}
+		infoCMD.Flags().StringP("addr", "a", "", "address of tls target, ip:port")
+		infoCMD.Flags().StringP("proxy", "p", "", "proxy URL connect to address of tls target, example: http://127.0.0.1:8080")
+		infoCMD.Flags().StringP("servername", "s", "", "the server name sent to tls server")
+		infoCMD.Flags().StringP("file", "f", "", "path of tls certificate file")
+		saveCMD := &cobra.Command{
+			Use:  "save",
+			Long: "save tls target host:port certificate to file",
+			Run: func(c *cobra.Command, a []string) {
+				s.save(SaveArgs{
+					Addr:       util.Must(c.Flags().GetString("addr")).String(),
+					Proxy:      util.Must(c.Flags().GetString("proxy")).String(),
+					ServerName: util.Must(c.Flags().GetString("servername")).String(),
+					FolderName: util.Must(c.Flags().GetString("name")).String(),
+				})
+			},
+		}
+		saveCMD.Flags().StringP("addr", "a", "", "address of tls target, ip:port")
+		saveCMD.Flags().StringP("proxy", "p", "", "proxy URL connect to address of tls target, example: http://127.0.0.1:8080")
+		saveCMD.Flags().StringP("servername", "s", "", "the server name sent to tls server")
+		saveCMD.Flags().StringP("name", "n", "", "save certificate folder name")
+		cmd.AddCommand(infoCMD)
+		cmd.AddCommand(saveCMD)
+		root.AddCommand(cmd)
+	})
+}
+
 type SaveArgs struct {
-	Addr       *string
-	Proxy      *string
-	ServerName *string
-	FolderName *string
+	Addr       string
+	Proxy      string
+	ServerName string
+	FolderName string
 }
 
 type InfoArgs struct {
-	Addr       *string
-	Proxy      *string
-	ServerName *string
-	File       *string
-}
-
-type TLSArgs struct {
-	Save    *SaveArgs
-	Info    *InfoArgs
-	SubName *string
-}
-
-func NewTLSArgs() TLSArgs {
-	return TLSArgs{
-		Save:    new(SaveArgs),
-		Info:    new(InfoArgs),
-		SubName: new(string),
-	}
+	Addr       string
+	Proxy      string
+	ServerName string
+	File       string
 }
 
 type TLS struct {
-	tool.GMCTool
-	cfg     TLSArgs
 	timeout time.Duration
 	jumper  *gproxy.Jumper
 }
@@ -59,70 +102,38 @@ func NewTLS() *TLS {
 	return &TLS{}
 }
 
-func (s *TLS) init(args0 interface{}) (err error) {
-	s.cfg = args0.(TLSArgs)
-	s.timeout = time.Second * 15
-	proxy := ""
-	switch *s.cfg.SubName {
-	case "info":
-		proxy = *s.cfg.Info.Proxy
-		if *s.cfg.Info.Addr != "" && !strings.Contains(*s.cfg.Info.Addr, ":") {
-			*s.cfg.Info.Addr += ":443"
-		}
-		h, _, _ := net.SplitHostPort(*s.cfg.Info.Addr)
-		if *s.cfg.Info.ServerName == "" {
-			*s.cfg.Info.ServerName = h
-		}
-	case "save":
-		proxy = *s.cfg.Save.Proxy
-		if *s.cfg.Save.Addr != "" && !strings.Contains(*s.cfg.Save.Addr, ":") {
-			*s.cfg.Save.Addr += ":443"
-		}
-		h, _, _ := net.SplitHostPort(*s.cfg.Save.Addr)
-		if *s.cfg.Save.ServerName == "" {
-			*s.cfg.Save.ServerName = h
-		}
+func (s *TLS) getAddr(addr string) string {
+	a := addr
+	if a != "" && !strings.Contains(a, ":") {
+		a += ":443"
 	}
-	if proxy != "" {
-		var err error
-		s.jumper, err = gproxy.NewJumper(proxy, s.timeout)
-		if err != nil {
-			glog.Panic(err)
-		}
+	return a
+}
+func (s *TLS) getServerName(name, addr string) string {
+	a := name
+	if a != "" && !strings.Contains(a, ":") {
+		a += ":443"
 	}
-	return
+	h, _, _ := net.SplitHostPort(addr)
+	if a == "" {
+		a = h
+	}
+	return a
 }
 
-func (s *TLS) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
-	switch *s.cfg.SubName {
-	case "info":
-		s.info()
-	case "save":
-		s.save()
-	}
-	return
-}
-
-func (s *TLS) Stop() {
-	return
-}
-func (s *TLS) info() {
-	if *s.cfg.Info.Addr != "" {
-		info, err := getTLSInfo(s.getConnectionState(*s.cfg.Info.Addr, *s.cfg.Info.ServerName))
+func (s *TLS) info(args InfoArgs) {
+	if args.Addr != "" {
+		info, err := getTLSInfo(s.getConnectionState(args.Addr, args.ServerName))
 		if err != nil {
 			glog.Panic(err)
 		}
 		fmt.Println(info.String())
-	} else if *s.cfg.Info.File != "" {
-		if !gfile.Exists(*s.cfg.Info.File) {
-			glog.Fatalf("file not found: %s", *s.cfg.Info.File)
+	} else if args.File != "" {
+		if !gfile.Exists(args.File) {
+			glog.Fatalf("file not found: %s", args.File)
 		}
 		var blocks []byte
-		rest := gfile.Bytes(*s.cfg.Info.File)
+		rest := gfile.Bytes(args.File)
 		for {
 			var block *pem.Block
 			block, rest = pem.Decode(rest)
@@ -150,12 +161,12 @@ func (s *TLS) info() {
 
 	return
 }
-func (s *TLS) save() {
-	st := s.getConnectionState(*s.cfg.Save.Addr, *s.cfg.Save.ServerName)
+func (s *TLS) save(args SaveArgs) {
+	st := s.getConnectionState(args.Addr, args.ServerName)
 	buf := bytes.NewBuffer(nil)
-	folderName := *s.cfg.Save.FolderName
+	folderName := args.FolderName
 	if folderName == "" {
-		folderName = strings.Replace(*s.cfg.Save.Addr, ":", "_", -1)
+		folderName = strings.Replace(args.Addr, ":", "_", -1)
 	}
 	os.Mkdir(folderName, 0755)
 

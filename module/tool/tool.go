@@ -1,103 +1,105 @@
 package tool
 
 import (
+	"github.com/snail007/gmct/module/module"
+	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"net"
-	"os"
 	"strings"
-
-	"github.com/snail007/gmct/tool"
 )
 
 func init() {
-	// gmct xxx => gmct tool xxx
-	flags := map[string]bool{"web": true, "http": true, "www": true, "download": true, "dl": true, "ip": true}
-	if len(os.Args) >= 2 && flags[os.Args[1]] {
-		newArgs := []string{}
-		flagFound := false
-		// insert tool
-		for i, v := range os.Args {
-			if strings.HasPrefix(v, "-") {
-				flagFound = true
-			}
-			if i == 1 {
-				newArgs = append(newArgs, "tool")
-			}
-			newArgs = append(newArgs, v)
+	module.AddCommand(func(root *cobra.Command) {
+		s := NewTool()
+		httpCMD := &cobra.Command{
+			Use:     "web",
+			Long:    "simple http server",
+			Aliases: []string{"http", "www"},
+			Run: func(c *cobra.Command, a []string) {
+				s.httpServer(HTTPArgs{
+					Addr:     util.Must(c.Flags().GetString("addr")).String(),
+					RootDir:  util.Must(c.Flags().GetString("root")).String(),
+					Auth:     util.Must(c.Flags().GetStringSlice("auth")).StringSlice(),
+					Upload:   util.Must(c.Flags().GetString("upload")).String(),
+					ServerID: util.Must(c.Flags().GetString("id")).String(),
+				})
+			},
 		}
-		// download compact
-		if newArgs[2] == "download" || newArgs[2] == "dl" && !flagFound {
-			switch len(newArgs) {
-			case 4:
-				//gmct tool download <host|file>
-				//gmct tool download <serverID:file>
-				ip := net.ParseIP(newArgs[3])
-				if ip != nil && ip.To4() != nil {
-					// newArgs[3] is ip
-					newArgs = []string{newArgs[0], "tool", "dl", "-h", newArgs[3]}
-				} else if strings.Contains(newArgs[3], ":") {
-					// newArgs[3] is serverID:file
-					a := strings.SplitN(newArgs[3], ":", 2)
-					newArgs = []string{newArgs[0], "tool", "dl", "-i", a[0], "-f", a[1]}
-				} else {
-					// newArgs[3] is a file
-					newArgs = []string{newArgs[0], "tool", "dl", "-f", newArgs[3]}
+		httpCMD.Flags().StringP("addr", "l", "", "simple http server listen on")
+		httpCMD.Flags().StringP("root", "d", "", "simple http server root directory")
+		httpCMD.Flags().StringP("auth", "a", "", "simple http server basic auth username:password, such as : foouser:foopassowrd")
+		httpCMD.Flags().StringP("upload", "u", "", "simple http server upload url path, default `random`")
+		httpCMD.Flags().StringP("id", "i", "", "set the server id name, example: server01")
+
+		downloadCMD := &cobra.Command{
+			Use:     "download",
+			Long:    "download file from gmct simple http server",
+			Aliases: []string{"dl"},
+			Run: func(c *cobra.Command, a []string) {
+				host := util.Must(c.Flags().GetStringSlice("host")).StringSlice()
+				file := util.Must(c.Flags().GetString("file")).String()
+				id := util.Must(c.Flags().GetString("id")).String()
+				if len(a) == 1 {
+					ip := net.ParseIP(a[0])
+					if ip != nil && ip.To4() != nil {
+						// a[0] is ip
+						host = []string{a[0]}
+					} else if strings.Contains(a[0], ":") {
+						// a[0] is serverID:file
+						b := strings.SplitN(a[0], ":", 2)
+						id = b[0]
+						file = b[1]
+					} else {
+						// a[0] is a file
+						file = a[0]
+					}
+				} else if len(a) == 2 {
+					host = []string{a[0]}
+					file = a[1]
 				}
-			case 5:
-				//gmct tool download <host> <file>
-				newArgs = []string{newArgs[0], "tool", "dl", "-h", newArgs[3], "-f", newArgs[4]}
-			}
+				s.download(s.initDownload(&DownloadArgs{
+					Net:          util.Must(c.Flags().GetStringSlice("net")).StringSlice(),
+					Port:         util.Must(c.Flags().GetStringSlice("port")).StringSlice(),
+					File:         file,
+					Name:         util.Must(c.Flags().GetString("name")).String(),
+					MaxDeepLevel: util.Must(c.Flags().GetInt("deep")).Int(),
+					Host:         host,
+					Auth:         util.Must(c.Flags().GetString("auth")).String(),
+					ServerID:     id,
+					DownloadAll:  util.Must(c.Flags().GetBool("all")).Bool(),
+					Timeout:      util.Must(c.Flags().GetInt("timeout")).Int(),
+					DownloadDir:  util.Must(c.Flags().GetString("dir")).String(),
+				}))
+			},
 		}
-		os.Args = newArgs
-	}
-}
+		downloadCMD.Flags().StringP("net", "n", "", "network to scan, format: 192.168.1.0")
+		downloadCMD.Flags().StringP("port", "p", "", "gmct tool http port")
+		downloadCMD.Flags().StringP("file", "f", "*", "filename to download")
+		downloadCMD.Flags().StringP("name", "m", "", "rename download file to")
+		downloadCMD.Flags().IntP("deep", "d", 1, "max directory deep level to list server files, value 0: no limit")
+		downloadCMD.Flags().StringSliceP("host", "h", []string{}, "specify a domain or ip to download, example: 192.168.1.1 or 192.168.1.1:9090. \nyou can specify auth info, example: foo_user:foo_pass@192.168.1.2")
+		downloadCMD.Flags().StringP("auth", "a", "", "basic auth info, example: username:password")
+		downloadCMD.Flags().StringP("id", "i", "", "server id name to download files")
+		downloadCMD.Flags().Bool("all", false, "download all files matched")
+		downloadCMD.Flags().IntP("timeout", "t", 3, "timeout seconds to connect to server")
+		downloadCMD.Flags().StringP("dir", "c", "download_files", "path to download all files")
 
-type ToolArgs struct {
-	ToolName *string
-	SubName  *string
-	HTTP     *HTTPArgs
-	Download *DownloadArgs
-}
-
-func NewToolArgs() ToolArgs {
-	return ToolArgs{
-		ToolName: new(string),
-		SubName:  new(string),
-		HTTP:     new(HTTPArgs),
-		Download: new(DownloadArgs),
-	}
+		ipCMD := &cobra.Command{
+			Use:  "ip",
+			Long: "ip toolkit",
+			Run: func(c *cobra.Command, a []string) {
+				s.ip()
+			},
+		}
+		root.AddCommand(ipCMD)
+		root.AddCommand(httpCMD)
+		root.AddCommand(downloadCMD)
+	})
 }
 
 type Tool struct {
-	tool.GMCTool
-	args ToolArgs
 }
 
 func NewTool() *Tool {
 	return &Tool{}
-}
-
-func (s *Tool) init(args0 interface{}) (err error) {
-	s.args = args0.(ToolArgs)
-	return
-}
-
-func (s *Tool) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
-	switch *s.args.SubName {
-	case "ip":
-		s.ip()
-	case "http":
-		s.httpServer()
-	case "download":
-		s.initDownload()
-		s.download()
-	}
-	return
-}
-
-func (s *Tool) Stop() {
-	return
 }

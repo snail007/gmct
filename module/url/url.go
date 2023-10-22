@@ -2,53 +2,42 @@ package gurl
 
 import (
 	"fmt"
-	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/module/module"
+	"github.com/spf13/cobra"
 	"net/url"
+	"strings"
 )
 
-type Args struct {
-	SubName   *string
-	EncodeStr *string
-	DecodeStr *string
-}
-
-func NewArgs() Args {
-	return Args{
-		SubName:   new(string),
-		EncodeStr: new(string),
-		DecodeStr: new(string),
-	}
-}
-
-type URL struct {
-	tool.GMCTool
-	args Args
-}
-
-func New() *URL {
-	return &URL{}
-}
-
-func (s *URL) init(args0 interface{}) (err error) {
-	s.args = args0.(Args)
-	return
-}
-
-func (s *URL) Start(args interface{}) (err error) {
-	s.init(args)
-	if *s.args.EncodeStr != "" {
-		fmt.Println(url.QueryEscape(*s.args.EncodeStr))
-	} else if *s.args.DecodeStr != "" {
-		result, e := url.QueryUnescape(*s.args.EncodeStr)
-		if e != nil {
-			err = e
-			return
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		cmd := &cobra.Command{
+			Use: "url",
+			PersistentPreRunE: func(c *cobra.Command, a []string) error {
+				if len(a) == 0 {
+					return fmt.Errorf("args required")
+				}
+				return nil
+			},
 		}
-		fmt.Println(result)
-	}
-	return
-}
-
-func (s *URL) Stop() {
-	return
+		cmd.AddCommand(&cobra.Command{
+			Use:  "encode",
+			Long: "escape the string",
+			Run: func(c *cobra.Command, a []string) {
+				fmt.Println(url.QueryEscape(strings.Join(a, " ")))
+			},
+		})
+		cmd.AddCommand(&cobra.Command{
+			Use:  "decode",
+			Long: "unescape the string",
+			RunE: func(c *cobra.Command, a []string) error {
+				result, e := url.QueryUnescape(strings.Join(a, " "))
+				if e != nil {
+					return e
+				}
+				fmt.Println(result)
+				return nil
+			},
+		})
+		root.AddCommand(cmd)
+	})
 }

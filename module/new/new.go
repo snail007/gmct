@@ -8,8 +8,9 @@ import (
 	gmccompress "github.com/snail007/gmc/util/compress"
 	gfile "github.com/snail007/gmc/util/file"
 	ghttp "github.com/snail007/gmc/util/http"
-	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/module/module"
 	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -21,68 +22,58 @@ var (
 	only = []string{".go"}
 )
 
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		s := NewX()
+		newCMD := &cobra.Command{
+			Use: "new",
+			PersistentPreRunE: func(c *cobra.Command, a []string) error {
+				s.GOPATH = strings.TrimSpace(os.Getenv("GOPATH"))
+				if s.GOPATH == "" {
+					return fmt.Errorf("GOPATH environment variable not found")
+				}
+				err := s.init()
+				if err != nil {
+					return err
+				}
+				err = s.decompress(c.Name())
+				if err != nil {
+					return err
+				}
+				return nil
+			},
+		}
+		newCMD.AddCommand(&cobra.Command{
+			Use:     "web",
+			Aliases: []string{"api", "api-simple", "admin"},
+			RunE: func(c *cobra.Command, a []string) error {
+				s.args.Package = util.Must(c.Flags().GetBool("pkg")).String()
+				//s.args.Update = util.Must(c.Flags().GetBool("pkg")).String()
+				s.replace(c.Name())
+				return nil
+			},
+		})
+		newCMD.Flags().String("pkg", "", "package path of project in GOPATH")
+		//cmd.Flags().BoolP("force", "f", false, "overwrite controller file, if it exists.")
+		root.AddCommand(newCMD)
+	})
+}
+
 type NewxArgs struct {
-	SubName   *string
-	Web       WebArgs
-	API       APIArgs
-	SimpleAPI SimpleAPIArgs
-	Admin     AdminArgs
+	Package string
+	Update  bool
 }
-
-type WebArgs struct {
-	Package *string
-}
-
-type APIArgs struct {
-	Package *string
-}
-
-type SimpleAPIArgs struct {
-	Package *string
-}
-
-type AdminArgs struct {
-	Package *string
-	Update  *bool
-}
-
-func NewArgs() NewxArgs {
-	return NewxArgs{
-		SubName: new(string),
-		Web: WebArgs{
-			Package: new(string),
-		},
-		API: APIArgs{
-			Package: new(string),
-		},
-		SimpleAPI: SimpleAPIArgs{
-			Package: new(string),
-		},
-		Admin: AdminArgs{
-			Package: new(string),
-			Update:  new(bool),
-		},
-	}
-}
-
 type Newx struct {
-	tool.GMCTool
 	GOPATH string
 	dest   string
-	cfg    NewxArgs
+	args   NewxArgs
 }
 
 func NewX() *Newx {
 	return &Newx{}
 }
 
-func (s *Newx) init(args0 interface{}) (err error) {
-
-	s.cfg = args0.(NewxArgs)
-	s.GOPATH = strings.TrimSpace(os.Getenv("GOPATH"))
-	if s.GOPATH == "" {
-		return fmt.Errorf("GOPATH environment variable not found")
-	}
+func (s *Newx) init() (err error) {
 	// GOPATH may be contains multiple paths
 	if filepath.Separator == '\\' {
 		// windows
@@ -95,39 +86,28 @@ func (s *Newx) init(args0 interface{}) (err error) {
 	return
 }
 
-func (s *Newx) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
-	err = s.decompress()
-	if err != nil {
-		return
-	}
-	s.replace()
-	fmt.Printf("initialized at: %s\n", s.dest)
-	return
-}
-
 func (s *Newx) Stop() {
 
 	return
 }
-func (s *Newx) replace() {
+func (s *Newx) replace(act string) {
+	defer func() {
+		fmt.Printf("initialized at: %s\n", s.dest)
+	}()
 	var oldStr, newStr string
-	switch *s.cfg.SubName {
+	switch act {
 	case "web":
 		oldStr = "mygmcweb"
-		newStr = *s.cfg.Web.Package
+		newStr = s.args.Package
 	case "api":
 		oldStr = "mygmcapi"
-		newStr = *s.cfg.API.Package
+		newStr = s.args.Package
 	case "api-simple":
 		oldStr = "mygmcapi"
-		newStr = *s.cfg.SimpleAPI.Package
+		newStr = s.args.Package
 	case "admin":
 		oldStr = "mygmcadmin"
-		newStr = *s.cfg.Admin.Package
+		newStr = s.args.Package
 	}
 	filepath.Walk(s.dest, func(path string, info os.FileInfo, err error) error {
 		ok := false
@@ -153,27 +133,27 @@ go 1.12
 
 	ioutil.WriteFile(filepath.Join(s.dest, "go.mod"), []byte(modTpl), 0755)
 }
-func (s *Newx) decompress() (err error) {
+func (s *Newx) decompress(act string) (err error) {
 	data := ""
 	var d []byte
 	s.dest = s.GOPATH
-	switch *s.cfg.SubName {
+	switch act {
 	case "web":
 		data = webData
-		s.dest = filepath.Join(s.dest, *s.cfg.Web.Package)
+		s.dest = filepath.Join(s.dest, s.args.Package)
 	case "api":
 		data = apiData
-		s.dest = filepath.Join(s.dest, *s.cfg.API.Package)
+		s.dest = filepath.Join(s.dest, s.args.Package)
 	case "api-simple":
 		data = simpleapiData
-		s.dest = filepath.Join(s.dest, *s.cfg.SimpleAPI.Package)
+		s.dest = filepath.Join(s.dest, s.args.Package)
 	case "admin":
 		data = ""
 		d, err = s.getAdmData()
 		if err != nil {
 			return
 		}
-		s.dest = filepath.Join(s.dest, *s.cfg.Admin.Package)
+		s.dest = filepath.Join(s.dest, s.args.Package)
 	}
 	s.dest, _ = filepath.Abs(s.dest)
 
@@ -198,7 +178,7 @@ func (s *Newx) decompress() (err error) {
 	b.Write(d)
 
 	_, err = gmccompress.Unpack(&b, s.dest)
-	if err == nil && *s.cfg.SubName == "admin" {
+	if err == nil && act == "admin" {
 		root := filepath.Dir(s.dest)
 		dstDirname := filepath.Base(s.dest)
 		fs, err := filepath.Glob(s.dest + "/*")
@@ -226,7 +206,7 @@ func (s *Newx) decompress() (err error) {
 func (s *Newx) getAdmData() (data []byte, err error) {
 	home, _ := os.UserHomeDir()
 	filePath := filepath.Join(home, ".gmct", "mygmcadmin.zip")
-	if *s.cfg.Admin.Update || !gfile.Exists(filePath) {
+	if s.args.Update || !gfile.Exists(filePath) {
 		os.Remove(filePath)
 		os.MkdirAll(filepath.Dir(filePath), 0755)
 		fmt.Println("starting to download the admin source code ...")

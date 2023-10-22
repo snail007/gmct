@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/snail007/gmct/module/module"
+	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"os/exec"
@@ -24,41 +27,48 @@ import (
 const updateAPIURL = "https://mirrors.host900.com/https://api.github.com/repos/snail007/gmct/releases/latest"
 const downloadURL = "https://mirrors.host900.com/https://github.com/snail007/gmct/releases/download/v%s/gmct-%s.tar.gz"
 
-type UpdateArgs struct {
-	UpdateName *string
-	SubName    *string
-	Force      *bool
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		cmd := &cobra.Command{
+			Use:     "update",
+			Long:    "update gmct to the latest version",
+			Aliases: nil,
+			RunE: func(c *cobra.Command, a []string) error {
+				srv := NewUpdate(Args{
+					Force: util.Must(c.Flags().GetBool("force")).Bool(),
+				})
+				err := srv.init()
+				if err != nil {
+					return err
+				}
+				defer srv.Stop()
+				return srv.Start()
+			},
+		}
+		cmd.Flags().BoolP("force", "f", false, "force update")
+		root.AddCommand(cmd)
+	})
 }
 
-func NewUpdateArgs() UpdateArgs {
-	return UpdateArgs{
-		UpdateName: new(string),
-		SubName:    new(string),
-		Force:      new(bool),
-	}
+type Args struct {
+	Force bool
 }
 
 type Update struct {
-	tool.GMCTool
-	args UpdateArgs
+	args Args
 }
 
-func NewUpdate() *Update {
-	return &Update{}
+func NewUpdate(args Args) *Update {
+	return &Update{args: args}
 }
 
-func (s *Update) init(args0 interface{}) (err error) {
-	s.args = args0.(UpdateArgs)
+func (s *Update) init() (err error) {
 	ghttp.Client.SetDNS("8.8.8.8:53")
 	ghttp.Client.SetProxyFromEnv(true)
 	return
 }
 
-func (s *Update) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
+func (s *Update) Start() (err error) {
 	currentVersion := tool.Version
 	// check
 	d, _, err := ghttp.Download(updateAPIURL, time.Second*30, nil, nil)
@@ -77,13 +87,13 @@ func (s *Update) Start(args interface{}) (err error) {
 	}
 
 	if newVersion == currentVersion {
-		if !*s.args.Force {
+		if !s.args.Force {
 			return fmt.Errorf("already installed newest version %s, you can using -f to force update", newVersion)
 		}
 	}
 
 	// confirm
-	if !*s.args.Force {
+	if !s.args.Force {
 		fmt.Printf("Current version is: v%s\nConfirm update to v%s [y/N]:", currentVersion, newVersion)
 		r := bufio.NewReader(os.Stdin)
 		str, _ := r.ReadString('\n')

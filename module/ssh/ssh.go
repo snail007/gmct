@@ -2,6 +2,9 @@ package ssht
 
 import (
 	"fmt"
+	"github.com/snail007/gmct/module/module"
+	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
 	"net"
@@ -12,60 +15,71 @@ import (
 	"time"
 
 	gproxy "github.com/snail007/gmc/util/proxy"
-	"github.com/snail007/gmct/tool"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/http/httpproxy"
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-type SshArgs struct {
-	File    *string
-	SSHURL  *string
-	Command *string
-
-	SshURL *url.URL
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		cmd := &cobra.Command{
+			Use:     "ssh",
+			Long:    "ssh tool, copy  file to or execute command on remote host",
+			Aliases: nil,
+			RunE: func(c *cobra.Command, a []string) error {
+				srv := NewSsh(Args{
+					File:    util.Must(c.Flags().GetString("copy")).String(),
+					SSHURL:  util.Must(c.Flags().GetString("url")).String(),
+					Command: util.Must(c.Flags().GetString("cmd")).String(),
+				})
+				err := srv.init()
+				if err != nil {
+					return err
+				}
+				defer srv.Stop()
+				return srv.Start()
+			},
+		}
+		cmd.Flags().StringP("copy", "c", "", "<local_file>:<remote_file>, local file to copy")
+		cmd.Flags().StringP("url", "u", "", "ssh info url")
+		cmd.Flags().StringP("cmd", "e", "", "command to execute, or '@file' exec script file")
+		root.AddCommand(cmd)
+	})
 }
 
-func NewSshArgs() SshArgs {
-	return SshArgs{
-		File:   new(string),
-		SSHURL: new(string),
-	}
+type Args struct {
+	File    string
+	SSHURL  string
+	Command string
+	SshURL  *url.URL
 }
 
 type Ssh struct {
-	tool.GMCTool
-	args SshArgs
+	args Args
 }
 
-func NewSsh() *Ssh {
-	return &Ssh{}
+func NewSsh(args Args) *Ssh {
+	return &Ssh{args: args}
 }
 
-func (s *Ssh) init(args0 interface{}) (err error) {
-	s.args = args0.(SshArgs)
-
-	if *s.args.SSHURL == "" {
+func (s *Ssh) init() (err error) {
+	if s.args.SSHURL == "" {
 		return fmt.Errorf("ssh info is required")
-	} else if !strings.HasPrefix(*s.args.SSHURL, "ssh://") {
-		*s.args.SSHURL = "ssh://" + *s.args.SSHURL
+	} else if !strings.HasPrefix(s.args.SSHURL, "ssh://") {
+		s.args.SSHURL = "ssh://" + s.args.SSHURL
 	}
-	s.args.SshURL, err = url.Parse(*s.args.SSHURL)
+	s.args.SshURL, err = url.Parse(s.args.SSHURL)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func (s *Ssh) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
-	if *s.args.File != "" {
+func (s *Ssh) Start() (err error) {
+	if s.args.File != "" {
 		err = s.copy()
 	}
-	if *s.args.Command != "" {
+	if s.args.Command != "" {
 		err = s.exec()
 	}
 
@@ -73,7 +87,7 @@ func (s *Ssh) Start(args interface{}) (err error) {
 }
 
 func (s *Ssh) copy() (err error) {
-	a := strings.Split(*s.args.File, ":")
+	a := strings.Split(s.args.File, ":")
 	if len(a) != 2 {
 		return fmt.Errorf("error file format")
 	}
@@ -165,7 +179,7 @@ func (s *Ssh) exec() (err error) {
 		io.Copy(os.Stdout, stdout)
 	}()
 
-	cmd := *s.args.Command
+	cmd := s.args.Command
 	if strings.HasPrefix(cmd, "@") {
 		file := cmd[1:]
 		content, err := ioutil.ReadFile(file)
@@ -176,7 +190,7 @@ func (s *Ssh) exec() (err error) {
 	}
 	cmd = "echo -e '" + cmd + "'|bash"
 
-	err = session.Run(*s.args.Command)
+	err = session.Run(s.args.Command)
 	if err != nil {
 		return
 	}

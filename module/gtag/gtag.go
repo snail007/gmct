@@ -2,41 +2,47 @@ package gtag
 
 import (
 	"fmt"
-	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/module/module"
+	"github.com/spf13/cobra"
 	"os/exec"
 	"strings"
 	"time"
 )
 
-type GTagArgs struct {
-	SubName *string
-}
-
-func NewGTagArgs() GTagArgs {
-	return GTagArgs{
-		SubName: new(string),
-	}
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		cmd := &cobra.Command{
+			Use:  "gtag",
+			Long: "print go mod require tag of git repository in current directory",
+			RunE: func(c *cobra.Command, a []string) error {
+				if len(a) == 0 {
+					return fmt.Errorf("execute arguments required")
+				}
+				srv := NewGTag()
+				err := srv.init()
+				if err != nil {
+					return err
+				}
+				defer srv.Stop()
+				return srv.Start()
+			},
+		}
+		root.AddCommand(cmd)
+	})
 }
 
 type GTag struct {
-	tool.GMCTool
-	args GTagArgs
 }
 
 func NewGTag() *GTag {
 	return &GTag{}
 }
 
-func (s *GTag) init(args0 interface{}) (err error) {
-	s.args = args0.(GTagArgs)
+func (s *GTag) init() (err error) {
 	return
 }
 
-func (s *GTag) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
+func (s *GTag) Start() (err error) {
 	cmd := exec.Command("git", "log", "-n", "1", "--date", "format:%Y-%m-%d %H:%M:%S")
 	b, e := cmd.CombinedOutput()
 	if e != nil {

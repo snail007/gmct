@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/module/module"
 	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -14,50 +15,66 @@ import (
 	"time"
 )
 
-type StaticArgs struct {
-	Dir              *string
-	GoFilenamePrefix string
-	GoFilename       string
-	Clean            *bool
-	NotExtension     *string
-	SubName          *string
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		cmd := &cobra.Command{
+			Use:     "static",
+			Long:    "pack or clean static go file",
+			Aliases: nil,
+			RunE: func(c *cobra.Command, a []string) error {
+				srv := NewStatic(Args{
+					Dir:          util.Must(c.Flags().GetString("dir")).String(),
+					Clean:        util.Must(c.Flags().GetBool("clean")).Bool(),
+					NotExtension: util.Must(c.Flags().GetString("ext")).String(),
+				})
+				err := srv.init()
+				if err != nil {
+					return err
+				}
+				defer srv.Stop()
+				return srv.Start()
+			},
+		}
+		cmd.Flags().String("dir", "", "template's static directory path, gmct will convert all static files in the folder to one go file")
+		cmd.Flags().String("ext", "", "extension of exclude static files")
+		cmd.Flags().Bool("clean", false, "clean packed file, if exists")
+		root.AddCommand(cmd)
+	})
 }
 
-func NewStaticArgs() StaticArgs {
-	return StaticArgs{
-		Dir:          new(string),
-		NotExtension: new(string),
-		Clean:        new(bool),
-		SubName:      new(string),
-	}
+type Args struct {
+	Dir              string
+	NotExtension     string
+	Clean            bool
+	GoFilenamePrefix string
+	GoFilename       string
 }
 
 type Static struct {
-	tool.GMCTool
-	args    StaticArgs
+	args    Args
 	notExts map[string]bool
 }
 
-func NewStatic() *Static {
+func NewStatic(args Args) *Static {
 	return &Static{
+		args:    args,
 		notExts: map[string]bool{},
 	}
 }
 
-func (s *Static) init(args0 interface{}) (err error) {
-	s.args = args0.(StaticArgs)
-	if *s.args.Dir == "" {
+func (s *Static) init() (err error) {
+	if s.args.Dir == "" {
 		return fmt.Errorf("static directory not exists")
 	}
 	//convert pack path to absoulte path of *nix style
-	*s.args.Dir, err = filepath.Abs(*s.args.Dir)
+	s.args.Dir, err = filepath.Abs(s.args.Dir)
 	if err != nil {
 		return
 	}
-	*s.args.Dir = strings.Replace(*s.args.Dir, "\\", "/", -1)
-	*s.args.Dir = filepath.Join(*s.args.Dir, "/")
+	s.args.Dir = strings.Replace(s.args.Dir, "\\", "/", -1)
+	s.args.Dir = filepath.Join(s.args.Dir, "/")
 
-	for _, ext := range strings.Split(*s.args.NotExtension, ",") {
+	for _, ext := range strings.Split(s.args.NotExtension, ",") {
 		s.notExts[ext] = true
 	}
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -66,12 +83,8 @@ func (s *Static) init(args0 interface{}) (err error) {
 	return
 }
 
-func (s *Static) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
-	if *s.args.Clean {
+func (s *Static) Start() (err error) {
+	if s.args.Clean {
 		s.clean()
 	} else {
 		s.clean()
@@ -86,7 +99,7 @@ func (s *Static) Stop() {
 }
 func (s *Static) pack() (err error) {
 	names := []string{}
-	err = s.tree(*s.args.Dir, &names)
+	err = s.tree(s.args.Dir, &names)
 	if err != nil {
 		return
 	}
@@ -101,7 +114,7 @@ func (s *Static) pack() (err error) {
 	}
 	var buf bytes.Buffer
 	for _, v := range filenames {
-		b, err := ioutil.ReadFile(filepath.Join(*s.args.Dir, v))
+		b, err := ioutil.ReadFile(filepath.Join(s.args.Dir, v))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -193,7 +206,7 @@ func (s *Static) tree(folder string, names *[]string) (err error) {
 				continue
 			}
 			v0 := strings.Replace(v, "\\", "/", -1)
-			v0 = strings.Replace(v0, *s.args.Dir+"/", "", -1)
+			v0 = strings.Replace(v0, s.args.Dir+"/", "", -1)
 			*names = append(*names, v0)
 		}
 	}

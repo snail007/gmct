@@ -3,8 +3,9 @@ package model
 import (
 	"fmt"
 	"github.com/snail007/gmc"
-	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/module/module"
 	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os/exec"
 	"strings"
@@ -14,55 +15,65 @@ var (
 	defaultFile = "tables.toml"
 )
 
-type ModelArgs struct {
-	ForceCreate     *bool
-	SubName         *string
-	Table           *string
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		cmd := &cobra.Command{
+			Use:     "model",
+			Long:    "create a model in current directory",
+			Aliases: nil,
+			RunE: func(c *cobra.Command, a []string) error {
+				srv := NewModel(Args{
+					ForceCreate: util.Must(c.Flags().GetBool("force")).Bool(),
+					Table:       util.Must(c.Flags().GetString("name")).String(),
+				})
+				err := srv.init()
+				if err != nil {
+					return err
+				}
+				defer srv.Stop()
+				return srv.Start()
+			},
+		}
+		cmd.Flags().StringP("table", "n", "", "table name without suffix")
+		cmd.Flags().BoolP("force", "f", false, "overwrite model file, if it exists.")
+		root.AddCommand(cmd)
+	})
+}
+
+type Args struct {
+	ForceCreate     bool
+	Table           string
 	tablename       string
 	tableStructName string
 	fromFile        bool
 }
 
-func NewModelArgs() ModelArgs {
-	return ModelArgs{
-		SubName:     new(string),
-		Table:       new(string),
-		ForceCreate: new(bool),
-	}
-}
-
 type Model struct {
-	tool.GMCTool
-	args ModelArgs
+	args Args
 }
 
-func NewModel() *Model {
-	return &Model{}
+func NewModel(args Args) *Model {
+	return &Model{args: args}
 }
 
-func (s *Model) init(args0 interface{}) (err error) {
-	s.args = args0.(ModelArgs)
-	if *s.args.Table == "" {
+func (s *Model) init() (err error) {
+	if s.args.Table == "" {
 		s.args.fromFile = util.Exists(defaultFile)
 		if s.args.fromFile {
 			return
 		}
 		return fmt.Errorf("table name required")
 	}
-	arr := strings.Split(*s.args.Table, "_")
+	arr := strings.Split(s.args.Table, "_")
 	for k, v := range arr {
 		arr[k] = strings.Title(strings.ToLower(v))
 	}
-	s.args.tablename = *s.args.Table
+	s.args.tablename = s.args.Table
 	s.args.tableStructName = strings.Join(arr, "")
 	return
 }
 
-func (s *Model) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
+func (s *Model) Start() (err error) {
 	if s.args.fromFile {
 		err = s.fromFile()
 	} else {
@@ -115,7 +126,7 @@ func (s *Model) create() (err error) {
 
 	}
 	filename := strings.ToLower(s.args.tablename) + ".go"
-	if util.Exists(filename) && !*s.args.ForceCreate {
+	if util.Exists(filename) && !s.args.ForceCreate {
 		return fmt.Errorf("file %s aleadly exists, please using option `-f` to overwrite it", filename)
 	}
 	ioutil.WriteFile(filename, []byte(tpl), 0755)

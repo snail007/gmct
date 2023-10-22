@@ -3,8 +3,9 @@ package controller
 import (
 	"fmt"
 	"github.com/snail007/gmc"
-	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/module/module"
 	"github.com/snail007/gmct/util"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os/exec"
 	"strings"
@@ -14,51 +15,65 @@ var (
 	defaultFile = "controllers.toml"
 )
 
-type ControllerArgs struct {
-	ForceCreate    *bool
-	ControllerName *string
-	TableName      *string
-	SubName        *string
+func init() {
+	module.AddCommand(func(root *cobra.Command) {
+		cmd := &cobra.Command{
+			Use:     "controller",
+			Long:    "create a controller in current directory",
+			Aliases: nil,
+			RunE: func(c *cobra.Command, a []string) error {
+				srv := NewController(Args{
+					ForceCreate:    util.Must(c.Flags().GetBool("force")).Bool(),
+					ControllerName: util.Must(c.Flags().GetString("name")).String(),
+					TableName:      util.Must(c.Flags().GetString("table")).String(),
+					fromFile:       false,
+				})
+				err := srv.init()
+				if err != nil {
+					return err
+				}
+				defer srv.Stop()
+				return srv.Start()
+			},
+		}
+		cmd.Flags().StringP("name", "n", "", "controller struct name")
+		cmd.Flags().StringP("table", "t", "", "table name without prefix")
+		cmd.Flags().BoolP("force", "f", false, "overwrite controller file, if it exists.")
+		root.AddCommand(cmd)
+
+	})
+}
+
+type Args struct {
+	ForceCreate    bool
+	ControllerName string
+	TableName      string
+	SubName        string
 	fromFile       bool
 }
 
-func NewControllerArgs() ControllerArgs {
-	return ControllerArgs{
-		ControllerName: new(string),
-		TableName:      new(string),
-		SubName:        new(string),
-		ForceCreate:    new(bool),
-	}
-}
-
 type Controller struct {
-	tool.GMCTool
-	args ControllerArgs
+	args Args
 }
 
-func NewController() *Controller {
-	return &Controller{}
+func NewController(args Args) *Controller {
+	return &Controller{args: args}
 }
 
-func (s *Controller) init(args0 interface{}) (err error) {
-	s.args = args0.(ControllerArgs)
-	if *s.args.ControllerName == "" {
+func (s *Controller) init() (err error) {
+	if s.args.ControllerName == "" {
 		s.args.fromFile = util.Exists(defaultFile)
 		if s.args.fromFile {
 			return
 		}
 		return fmt.Errorf("controller name required")
-	} else if *s.args.TableName == "" {
-		*s.args.TableName = strings.ToLower(*s.args.ControllerName)
+	} else if s.args.TableName == "" {
+		s.args.TableName = strings.ToLower(s.args.ControllerName)
 	}
 	return
 }
 
-func (s *Controller) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
+func (s *Controller) Start() (err error) {
 	if s.args.fromFile {
 		err = s.fromFile()
 	} else {
@@ -120,12 +135,12 @@ func (s *Controller) fromFile() (err error) {
 
 func (s *Controller) create() (err error) {
 	packageName := util.GetPackageName("./")
-	table := *s.args.TableName
+	table := s.args.TableName
 	tpl := fmt.Sprintf(tpl, packageName)
-	tpl = strings.Replace(tpl, "{{HOLDER}}", *s.args.ControllerName, -1)
+	tpl = strings.Replace(tpl, "{{HOLDER}}", s.args.ControllerName, -1)
 	tpl = strings.Replace(tpl, "{{TABLE}}", table, -1)
-	filename := strings.ToLower(*s.args.ControllerName) + ".go"
-	if util.Exists(filename) && !*s.args.ForceCreate {
+	filename := strings.ToLower(s.args.ControllerName) + ".go"
+	if util.Exists(filename) && !s.args.ForceCreate {
 		return fmt.Errorf("file %s aleadly exists, please using option `-f` to overwrite it", filename)
 	}
 	ioutil.WriteFile(filename, []byte(tpl), 0755)

@@ -2,6 +2,8 @@ package installtool
 
 import (
 	"fmt"
+	"github.com/snail007/gmct/module/module"
+	"github.com/spf13/cobra"
 	URL "net/url"
 	"os"
 	"os/exec"
@@ -14,7 +16,6 @@ import (
 	gfile "github.com/snail007/gmc/util/file"
 	ghttp "github.com/snail007/gmc/util/http"
 	gmctinstall "github.com/snail007/gmct/scripts/install"
-	"github.com/snail007/gmct/tool"
 )
 
 var (
@@ -24,50 +25,57 @@ var (
 )
 
 func init() {
-	if len(os.Args) >= 2 && (os.Args[1] == "install" || os.Args[1] == "install-force" || os.Args[1] == "uninstall") {
-		if len(os.Args) == 3 {
-			installPkg = os.Args[2]
-			os.Args = os.Args[:2]
+	module.AddCommand(func(root *cobra.Command) {
+		s := NewInstallTool()
+		cmd := &cobra.Command{
+			Use:     "install",
+			Long:    "install toolkit",
+			Aliases: []string{"install-force"},
+			RunE: func(c *cobra.Command, a []string) error {
+				if len(a) == 0 {
+					return fmt.Errorf("args required")
+				}
+				force := c.Name() == "install-force"
+				appVersion, installer := s.getInstaller(a[0])
+				if force {
+					if installer != nil {
+						return installer.InstallForce(appVersion)
+					}
+					return s.do("install", "", true)
+				} else {
+					if installer != nil {
+						return installer.Install(appVersion)
+					}
+					return s.do("install", "", false)
+				}
+			},
 		}
-	}
-}
-
-type Args struct {
-	InstallToolName *string
-	// Action install, install-force, uninstall
-	Action string
-}
-
-func NewInstallToolArgs() Args {
-	return Args{
-		InstallToolName: new(string),
-	}
+		root.AddCommand(&cobra.Command{
+			Use:  "uninstall",
+			Long: "uninstall staff installed by install toolkit",
+			RunE: func(c *cobra.Command, a []string) error {
+				if len(a) == 0 {
+					return fmt.Errorf("args required")
+				}
+				appVersion, installer := s.getInstaller(a[0])
+				if installer != nil {
+					return installer.Uninstall(appVersion)
+				}
+				return s.do("uninstall", "", false)
+			},
+		})
+		root.AddCommand(cmd)
+	})
 }
 
 type InstallTool struct {
-	tool.GMCTool
-	args Args
 }
 
 func NewInstallTool() *InstallTool {
 	return &InstallTool{}
 }
 
-func (s *InstallTool) init(args0 interface{}) (err error) {
-	s.args = args0.(Args)
-	return
-}
-
-func (s *InstallTool) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
-	if installPkg == "" {
-		return fmt.Errorf("install name required")
-	}
-	appVersion := ""
-	var installer APPInstaller
+func (s *InstallTool) getInstaller(installPkg string) (appVersion string, installer APPInstaller) {
 	for k, v := range appInstallers {
 		if !strings.HasPrefix(installPkg, k) {
 			continue
@@ -80,23 +88,6 @@ func (s *InstallTool) Start(args interface{}) (err error) {
 		s.checkRoot(v)
 		break
 	}
-	switch s.args.Action {
-	case "install":
-		if installer != nil {
-			return installer.Install(appVersion)
-		}
-		return s.do(s.args.Action, "", false)
-	case "install-force":
-		if installer != nil {
-			return installer.InstallForce(appVersion)
-		}
-		return s.do("install", "", true)
-	case "uninstall":
-		if installer != nil {
-			return installer.Uninstall(appVersion)
-		}
-		return s.do(s.args.Action, "", false)
-	}
 	return
 }
 
@@ -104,10 +95,6 @@ func (s *InstallTool) checkRoot(installer APPInstaller) {
 	if installer.NeedRoot() && runtime.GOOS != "windows" && os.Getuid() != 0 {
 		glog.Fatal("install need root permission")
 	}
-	return
-}
-
-func (s *InstallTool) Stop() {
 	return
 }
 

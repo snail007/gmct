@@ -41,6 +41,12 @@ type RepeatFileScanner struct {
 	buf          *gbytes.BytesBuilder
 	workersCount int
 	doDelete     bool
+	deleteNew    bool
+}
+
+func (s *RepeatFileScanner) DeleteNew(deleteNew bool) *RepeatFileScanner {
+	s.deleteNew = deleteNew
+	return s
 }
 
 func (s *RepeatFileScanner) Delete(doDelete bool) *RepeatFileScanner {
@@ -176,8 +182,14 @@ func (s *RepeatFileScanner) RepeatResult() (result []RepeatResultItem) {
 		})
 		var latestItem = files[0]
 		for _, f := range files[1:] {
-			if f.info.ModTime().After(latestItem.info.ModTime()) {
-				latestItem = f
+			if s.deleteNew {
+				if f.info.ModTime().Before(latestItem.info.ModTime()) {
+					latestItem = f
+				}
+			} else {
+				if f.info.ModTime().After(latestItem.info.ModTime()) {
+					latestItem = f
+				}
 			}
 		}
 		var repeatFiles []ResultItem

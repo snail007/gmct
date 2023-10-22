@@ -6,10 +6,10 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	glog "github.com/snail007/gmc/module/log"
 	ghttp "github.com/snail007/gmc/util/http"
-	gmap "github.com/snail007/gmc/util/map"
+	"github.com/snail007/gmct/module/module"
 	goinstall "github.com/snail007/gmct/scripts/go/install"
-	"github.com/snail007/gmct/tool"
 	"github.com/snail007/gmct/util/config"
+	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,63 +17,120 @@ import (
 )
 
 var (
-	installPkg string
-	apiName    string
-	aliasData  = map[string]string{
+	aliasData = map[string]string{
 		"golint":   "golang.org/x/lint/golint",
 		"dlv":      "github.com/go-delve/delve/cmd/dlv",
 		"gomobile": "golang.org/x/mobile/cmd/gomobile;gomobile init",
 	}
 )
-var checkArgs = func(subName string, callback func(arg string)) {
-	if len(os.Args) >= 3 && os.Args[1] == "go" && os.Args[2] == subName {
-		if len(os.Args) == 4 {
-			callback(os.Args[3])
-			os.Args = os.Args[:3]
-		}
-	}
-}
 
 func init() {
-	checkArgs("install", func(arg string) {
-		installPkg = arg
-	})
-	checkArgs("api", func(arg string) {
-		apiName = arg
-	})
-}
+	module.AddCommand(func(root *cobra.Command) {
+		goodCode := "^_^ The project has a good coding. ^_^"
+		s := NewGoTool()
+		goCMD := &cobra.Command{
+			Use: "go",
+			PersistentPreRunE: func(c *cobra.Command, a []string) error {
+				if (c.Name() == "install" || c.Name() == "api") && len(a) != 1 {
+					return fmt.Errorf("arg required")
+				}
+				if c.Name() == "link" || c.Name() == "check" {
+					if !s.commandIsExists("golint") {
+						s.install("golang.org/x/lint/golint")
+					}
+				}
+				return nil
+			},
+		}
+		goCMD.AddCommand(&cobra.Command{
+			Use: "install",
+			RunE: func(c *cobra.Command, a []string) error {
+				return s.install(a[0])
+			},
+		})
+		goCMD.AddCommand(&cobra.Command{
+			Use: "api",
+			RunE: func(c *cobra.Command, a []string) error {
+				if !strings.Contains(a[0], ".") {
+					return fmt.Errorf("arg required")
+				}
+				s.api(a[0])
+				return nil
+			},
+		})
 
-type GoToolArgs struct {
-	GoToolName *string
-	SubName    *string
-}
+		goCMD.AddCommand(&cobra.Command{
+			Use: "lint",
+			RunE: func(c *cobra.Command, a []string) error {
+				if !s.do(s.getLintCmd()) {
+					fmt.Println(goodCode)
+				}
+				return nil
+			},
+		})
 
-func NewGoToolArgs() GoToolArgs {
-	return GoToolArgs{
-		GoToolName: new(string),
-		SubName:    new(string),
-	}
+		goCMD.AddCommand(&cobra.Command{
+			Use: "check",
+			RunE: func(c *cobra.Command, args []string) error {
+				a := s.do(s.getLintCmd())
+				b := s.do(s.getVetCmd())
+				s.do(s.getFmtCmd())
+				if !a && !b {
+					fmt.Println(goodCode)
+				}
+				return nil
+			},
+		})
+
+		goCMD.AddCommand(&cobra.Command{
+			Use: "vet",
+			RunE: func(c *cobra.Command, a []string) error {
+				if !s.do(s.getVetCmd()) {
+					fmt.Println(goodCode)
+				}
+				return nil
+			},
+		})
+
+		goCMD.AddCommand(&cobra.Command{
+			Use: "fmt",
+			RunE: func(c *cobra.Command, a []string) error {
+				s.do(s.getFmtCmd())
+				return nil
+			},
+		})
+		root.AddCommand(goCMD)
+	})
 }
 
 type GoTool struct {
-	tool.GMCTool
-	args GoToolArgs
 }
 
 func NewGoTool() *GoTool {
 	return &GoTool{}
 }
-
-func (s *GoTool) init(args0 interface{}) (err error) {
-	s.args = args0.(GoToolArgs)
-	return
+func (s *GoTool) getVetCmd() string {
+	vetSkipWords := []string{
+		"vendor/",
+		"should have signature",
+		"_test.go:",
+		"^# ",
+		"possible misuse of",
+	}
+	vetSkipWords = append(vetSkipWords, config.Options.GetStringSlice("go.vet.skip")...)
+	vetCmd := "go vet ./... 2>&1 "
+	for _, v := range vetSkipWords {
+		vetCmd += "| grep -v \"" + v + "\" "
+	}
+	return vetCmd
 }
 
-func (s *GoTool) Start(args interface{}) (err error) {
-	err = s.init(args)
-	if err != nil {
-		return
-	}
+func (s *GoTool) getFmtCmd() string {
+	fmtCmd := `gofmt -s -w ./`
+	return fmtCmd
+}
+
+func (s *GoTool) getLintCmd() string {
 	lintSkipWords := []string{
 		"vendor/",
 		"receiver name should be a reflection of its identity",
@@ -89,63 +146,10 @@ func (s *GoTool) Start(args interface{}) (err error) {
 	for _, v := range lintSkipWords {
 		lintCmd += "| grep -v \"" + v + "\" "
 	}
-	vetSkipWords := []string{
-		"vendor/",
-		"should have signature",
-		"_test.go:",
-		"^# ",
-		"possible misuse of",
-	}
-	vetSkipWords = append(vetSkipWords, config.Options.GetStringSlice("go.vet.skip")...)
-	vetCmd := "go vet ./... 2>&1 "
-	for _, v := range vetSkipWords {
-		vetCmd += "| grep -v \"" + v + "\" "
-	}
-	fmtCmd := `gofmt -s -w ./`
-	switch *s.args.SubName {
-	case "lint", "check":
-		if !s.commandIsExists("golint") {
-			s.install("golang.org/x/lint/golint")
-		}
-	}
-	goodCode := "^_^ The project has a good coding. ^_^"
-	switch *s.args.SubName {
-	case "lint":
-		if !s.do(lintCmd) {
-			fmt.Println(goodCode)
-		}
-	case "vet":
-		if !s.do(vetCmd) {
-			fmt.Println(goodCode)
-		}
-	case "fmt":
-		s.do(fmtCmd)
-	case "check":
-		a := s.do(lintCmd)
-		b := s.do(vetCmd)
-		s.do(fmtCmd)
-		if !a && !b {
-			fmt.Println(goodCode)
-		}
-	case "install":
-		if installPkg == "" {
-			return fmt.Errorf("package required")
-		}
-		return s.install("")
-	case "api":
-		if apiName == "" || !strings.Contains(apiName, ".") {
-			return fmt.Errorf("api path required")
-		}
-		s.api()
-	}
-	return
+	return lintCmd
 }
 
-func (s *GoTool) Stop() {
-	return
-}
-
-func (s *GoTool) api() {
+func (s *GoTool) api(apiName string) {
 	info := strings.Split(apiName, ".")
 	path := info[0]
 	method := info[1]
@@ -195,10 +199,7 @@ func (s *GoTool) install(pkg string) (err error) {
 	pwd, _ := os.Getwd()
 	defer os.Chdir(pwd)
 	os.Chdir(os.TempDir())
-	if pkg != "" {
-		installPkg = pkg
-	}
-
+	installPkg := pkg
 	if v := aliasData[installPkg]; v != "" {
 		installPkg = v
 	}
@@ -265,8 +266,4 @@ func (s *GoTool) exportString() string {
 		export = append(export, "export "+v)
 	}
 	return strings.Join(export, ";") + ";\n"
-}
-
-func CmdList() []string {
-	return gmap.New().MergeStrStrMap(aliasData).StringKeys()
 }

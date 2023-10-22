@@ -46,17 +46,17 @@ func init() {
 }
 
 type DownloadArgs struct {
-	Port         *[]string
-	Net          *[]string
-	Name         *string
-	File         *string
-	MaxDeepLevel *int
-	Host         *[]string
-	Auth         *string
-	ServerID     *string
-	DownloadAll  *bool
-	Timeout      *int
-	DownloadDir  *string
+	Port         []string
+	Net          []string
+	Name         string
+	File         string
+	MaxDeepLevel int
+	Host         []string
+	Auth         string
+	ServerID     string
+	DownloadAll  bool
+	Timeout      int
+	DownloadDir  string
 	cfg          *viper.Viper
 }
 
@@ -72,10 +72,10 @@ type serverItem struct {
 	auth    []string
 }
 
-func (s *Tool) initDownload() {
-	if *s.args.Download.File == "" {
+func (s *Tool) initDownload(args *DownloadArgs) *DownloadArgs {
+	if args.File == "" {
 		glog.Panic("download file name required, use option: -f xxx")
-		return
+		return nil
 	}
 	f := filepath.Join(gfile.HomeDir(), defaultConfigName)
 	if gfile.Exists(f) {
@@ -86,7 +86,7 @@ func (s *Tool) initDownload() {
 		if e != nil {
 			glog.Warnf("read config error: %s, file:%s", e, f)
 		}
-		s.args.Download.cfg = cfg
+		args.cfg = cfg
 	} else {
 		gfile.WriteString(f, `# default networks to scan
 # example: net=["192.168.1.0","192.168.2.0"]
@@ -105,9 +105,10 @@ host=[]
 auth=""
 `, false)
 	}
+	return args
 }
-func (s *Tool) download() {
-	basename := strings.TrimPrefix(*s.args.Download.Name, "/")
+func (s *Tool) download(args *DownloadArgs) {
+	basename := strings.TrimPrefix(args.Name, "/")
 	if basename != "" {
 		if !s.confirmOverwrite(basename) {
 			return
@@ -121,7 +122,7 @@ func (s *Tool) download() {
 		}
 	}
 
-	foundFiles := s.getFoundFiles(s.getServerURL())
+	foundFiles := s.getFoundFiles(s.getServerURL(args), args)
 	if len(foundFiles) == 1 {
 		foundFile := foundFiles[0]
 		if basename == "" {
@@ -135,7 +136,7 @@ func (s *Tool) download() {
 		total := len(foundFiles)
 		for i, foundFile := range foundFiles {
 			basename = filepath.Base(foundFile.url.Path)
-			dir, _ := filepath.Abs(filepath.Join(*s.args.Download.DownloadDir, strings.TrimPrefix(filepath.Dir(foundFile.url.Path), "/")))
+			dir, _ := filepath.Abs(filepath.Join(args.DownloadDir, strings.TrimPrefix(filepath.Dir(foundFile.url.Path), "/")))
 			err := os.MkdirAll(dir, 0755)
 			if err != nil {
 				glog.Fatalf("create directory [%s] fail, error: %s", dir, err)
@@ -146,14 +147,14 @@ func (s *Tool) download() {
 }
 
 // 1
-func (s *Tool) getServerURL() *serverItem {
-	gmctWebServerList := s.getWebServerList()
+func (s *Tool) getServerURL(args *DownloadArgs) *serverItem {
+	gmctWebServerList := s.getWebServerList(args)
 	if len(gmctWebServerList) == 0 {
 		n := []string{}
-		for _, v := range s.getSubnetArr() {
+		for _, v := range s.getSubnetArr(args) {
 			n = append(n, v+"0")
 		}
-		glog.Fatalf("none gmct http server found, scan: %d, net: %v", len(s.getScanURLs()), n)
+		glog.Fatalf("none gmct http server found, scan: %d, net: %v", len(s.getScanURLs(args)), n)
 	}
 	serverURL := gmctWebServerList[0]
 	if len(gmctWebServerList) > 1 {
@@ -198,8 +199,8 @@ func (s *Tool) getServerURL() *serverItem {
 }
 
 // 2
-func (s *Tool) getWebServerList() []*serverItem {
-	scanURLArr := s.getScanURLs()
+func (s *Tool) getWebServerList(args *DownloadArgs) []*serverItem {
+	scanURLArr := s.getScanURLs(args)
 	length := len(scanURLArr)
 	pool := gpool.New(length)
 	g := sync.WaitGroup{}
@@ -210,14 +211,14 @@ func (s *Tool) getWebServerList() []*serverItem {
 		pool.Submit(func() {
 			defer g.Done()
 			url, _ := URL.Parse(scanURL)
-			user, pass, client := s.getDownloadHTTPClient(nil, url)
-			_, _, resp, e := client.Get(scanURL, time.Second*time.Duration(*s.args.Download.Timeout), nil, nil)
+			user, pass, client := s.getDownloadHTTPClient(nil, url, args)
+			_, _, resp, e := client.Get(scanURL, time.Second*time.Duration(args.Timeout), nil, nil)
 			if e != nil {
 				return
 			}
 			if strings.EqualFold(resp.Header.Get(headerPoweredByKey), headerPoweredByValue) {
 				serverID := resp.Header.Get(headerServerIDKey)
-				if *s.args.Download.ServerID != "" && serverID != *s.args.Download.ServerID {
+				if args.ServerID != "" && serverID != args.ServerID {
 					return
 				}
 				item := &serverItem{
@@ -239,7 +240,7 @@ func (s *Tool) getWebServerList() []*serverItem {
 }
 
 // 3
-func (s *Tool) getScanURLs() []string {
+func (s *Tool) getScanURLs(args *DownloadArgs) []string {
 	serverURLs := []string{}
 	var getHostURL = func(host string) string {
 		u, _ := URL.Parse(fmt.Sprintf("http://%s/", host))
@@ -250,7 +251,7 @@ func (s *Tool) getScanURLs() []string {
 	}
 
 	//  from command line
-	for _, host := range *s.args.Download.Host {
+	for _, host := range args.Host {
 		serverURLs = append(serverURLs, getHostURL(host))
 	}
 	if len(serverURLs) > 0 {
@@ -259,7 +260,7 @@ func (s *Tool) getScanURLs() []string {
 
 	//  from config file
 	if len(serverURLs) == 0 {
-		hostArr := s.getDownloadConfig("host")
+		hostArr := s.getDownloadConfig("host", args)
 		if hostArr != nil {
 			for _, h := range hostArr.([]interface{}) {
 				serverURLs = append(serverURLs, getHostURL(h.(string)))
@@ -272,9 +273,9 @@ func (s *Tool) getScanURLs() []string {
 
 	//  from auto scan
 	scanURLArr := []string{}
-	subnetArr := s.getSubnetArr()
+	subnetArr := s.getSubnetArr(args)
 	portList := gset.New()
-	portList.MergeStringSlice(*s.args.Download.Port)
+	portList.MergeStringSlice(args.Port)
 	portList.Add(DefaultPort)
 	for _, subnet := range subnetArr {
 		for i := 1; i <= 255; i++ {
@@ -291,7 +292,7 @@ func (s *Tool) getScanURLs() []string {
 }
 
 // 4
-func (s *Tool) getSubnetArr() []string {
+func (s *Tool) getSubnetArr(args *DownloadArgs) []string {
 	var checkNet = func(ip string) string {
 		n := net.ParseIP(ip)
 		if n == nil || n.To4() == nil {
@@ -300,11 +301,11 @@ func (s *Tool) getSubnetArr() []string {
 		return strings.Join(strings.Split(ip, ".")[:3], ".") + "."
 	}
 	subnetList := gset.New()
-	for _, v := range *s.args.Download.Net {
+	for _, v := range args.Net {
 		subnetList.Add(checkNet(v))
 	}
 	if subnetList.Len() == 0 {
-		net := s.getDownloadConfig("net")
+		net := s.getDownloadConfig("net", args)
 		if net != nil {
 			for _, v := range net.([]interface{}) {
 				subnetList.Add(checkNet(v.(string)))
@@ -320,14 +321,14 @@ func (s *Tool) getSubnetArr() []string {
 }
 
 // 1
-func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileItem) {
+func (s *Tool) getFoundFiles(serverItem *serverItem, args *DownloadArgs) (foundFiles []*serverFileItem) {
 	var files []*serverFileItem
-	s.listFiles(serverItem, "", &files)
+	s.listFiles(serverItem, "", args, &files)
 	if len(files) == 0 {
 		glog.Fatalf("no files found on the specify server, %s", serverItem.url.Host)
 	}
 	// filter files
-	toMatch := *s.args.Download.File
+	toMatch := args.File
 	g, err := glob.Compile(toMatch)
 	if err != nil {
 		glog.Fatalf("parse file name [%s] error: %s", toMatch, err)
@@ -347,7 +348,7 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 	}
 
 	if len(foundFiles) > 1 {
-		if *s.args.Download.DownloadAll {
+		if args.DownloadAll {
 			//download all
 			return foundFiles
 		}
@@ -395,9 +396,9 @@ func (s *Tool) getFoundFiles(serverItem *serverItem) (foundFiles []*serverFileIt
 }
 
 // 2
-func (s *Tool) listFiles(server *serverItem, path string, files *[]*serverFileItem) {
-	_, _, client := s.getDownloadHTTPClient(server.auth, nil)
-	body, _, resp, e := client.Get(server.url.String()+path, time.Second*time.Duration(*s.args.Download.Timeout), nil, nil)
+func (s *Tool) listFiles(server *serverItem, path string, args *DownloadArgs, files *[]*serverFileItem) {
+	_, _, client := s.getDownloadHTTPClient(server.auth, nil, args)
+	body, _, resp, e := client.Get(server.url.String()+path, time.Second*time.Duration(args.Timeout), nil, nil)
 	if e != nil {
 		glog.Warnf("fetch [%s] error: %s", server.url, e)
 		return
@@ -418,10 +419,10 @@ func (s *Tool) listFiles(server *serverItem, path string, files *[]*serverFileIt
 		}
 		if strings.HasSuffix(href, "/") {
 			deep := strings.Count(path+href, "/")
-			if *s.args.Download.MaxDeepLevel > 0 && deep > *s.args.Download.MaxDeepLevel {
+			if args.MaxDeepLevel > 0 && deep > args.MaxDeepLevel {
 				return
 			}
-			s.listFiles(server, path+href, files)
+			s.listFiles(server, path+href, args, files)
 		} else {
 			a := server.url.String() + path + href
 			u, err := URL.Parse(a)
@@ -437,7 +438,7 @@ func (s *Tool) listFiles(server *serverItem, path string, files *[]*serverFileIt
 	})
 }
 
-func (s *Tool) getBasicAuth(url *URL.URL) (username, password string, isSet bool) {
+func (s *Tool) getBasicAuth(url *URL.URL, args *DownloadArgs) (username, password string, isSet bool) {
 	authInfo := ""
 	// form url
 	if url != nil && url.User.Username() != "" {
@@ -446,13 +447,13 @@ func (s *Tool) getBasicAuth(url *URL.URL) (username, password string, isSet bool
 	}
 	//form command line
 	if authInfo == "" {
-		if *s.args.Download.Auth != "" {
-			authInfo = *s.args.Download.Auth
+		if args.Auth != "" {
+			authInfo = args.Auth
 		}
 	}
 	// from config
 	if authInfo == "" {
-		a := s.getDownloadConfig("auth")
+		a := s.getDownloadConfig("auth", args)
 		if a != nil {
 			authInfo = a.(string)
 		}
@@ -463,20 +464,20 @@ func (s *Tool) getBasicAuth(url *URL.URL) (username, password string, isSet bool
 	a := strings.Split(authInfo, ":")
 	return a[0], a[1], true
 }
-func (s *Tool) getDownloadConfig(key string) interface{} {
-	if s.args.Download.cfg == nil {
+func (s *Tool) getDownloadConfig(key string, args *DownloadArgs) interface{} {
+	if args.cfg == nil {
 		return nil
 	}
-	return s.args.Download.cfg.Get(key)
+	return args.cfg.Get(key)
 }
-func (s *Tool) getDownloadHTTPClient(auth []string, scanURL *URL.URL) (user, pass string, client *ghttp.HTTPClient) {
+func (s *Tool) getDownloadHTTPClient(auth []string, scanURL *URL.URL, args *DownloadArgs) (user, pass string, client *ghttp.HTTPClient) {
 	client = ghttp.NewHTTPClient()
 	client.SetProxyFromEnv(true)
 	if len(auth) == 2 {
 		user, pass = auth[0], auth[1]
 	}
 	if user == "" {
-		user, pass, _ = s.getBasicAuth(scanURL)
+		user, pass, _ = s.getBasicAuth(scanURL, args)
 	}
 	if user != "" {
 		client.SetBasicAuth(user, pass)
