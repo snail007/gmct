@@ -6,6 +6,8 @@ import (
 	"fmt"
 	glog "github.com/snail007/gmc/module/log"
 	gcast "github.com/snail007/gmc/util/cast"
+	gcond "github.com/snail007/gmc/util/cond"
+	"github.com/snail007/gmc/util/gpool"
 	"github.com/snail007/gmct/module/module"
 	"github.com/snail007/gmct/util"
 	"github.com/spf13/cobra"
@@ -14,8 +16,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
-	"sync"
 )
 
 func init() {
@@ -70,6 +72,7 @@ type Args struct {
 	CoverPkg   string
 	Timeout    string
 	Debug      bool
+	Workers    int
 }
 
 type Cover struct {
@@ -81,6 +84,7 @@ func NewCover(args Args) *Cover {
 }
 
 func (s *Cover) init() (err error) {
+	s.args.Workers = gcond.Cond(s.args.Workers <= 0, runtime.NumCPU(), s.args.Workers).(int)
 	return
 }
 
@@ -130,14 +134,9 @@ func (s *Cover) Start() (err error) {
 	s.debugf("testing packages list, %s", strings.Join(packages, ","))
 	coverProfiles := make([]string, len(packages))
 	payload := "mode: atomic\n"
-	var g sync.WaitGroup
-	var errChn chan error
-	var doneChn chan bool
+	var p *gpool.GPool
 	if !s.args.Ordered {
-		g = sync.WaitGroup{}
-		errChn = make(chan error)
-		doneChn = make(chan bool)
-		g.Add(len(packages))
+		p = gpool.New(s.args.Workers)
 	}
 	timeout := "15m"
 	if v := os.Getenv("GMCT_TEST_TIMEOUT"); v != "" {
@@ -185,24 +184,17 @@ func (s *Cover) Start() (err error) {
 			}
 		}
 		if !s.args.Ordered {
-			go func(coverprofile, pkg string) {
-				defer g.Done()
-				w(coverprofile, pkg)
-			}(coverProfiles[k], pkg)
+			coverProfile, packageName := coverProfiles[k], pkg
+			p.Submit(func() {
+				w(coverProfile, packageName)
+			})
 		} else {
 			w(coverProfiles[k], pkg)
 		}
 	}
 	if !s.args.Ordered {
-		go func() {
-			g.Wait()
-			doneChn <- true
-		}()
-		select {
-		case <-doneChn:
-		case e := <-errChn:
-			return e
-		}
+		p.WaitDone()
+		p.Stop()
 	}
 	//scan additional code coverage coverProfiles by testing
 	for _, pkg := range packages {
