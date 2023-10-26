@@ -66,7 +66,11 @@ func init() {
 				var cmd *gexec.Command
 				go func() {
 					defer func() {
-						close(signalChan)
+						select {
+						case signalChan <- syscall.SIGQUIT:
+							break
+						default:
+						}
 					}()
 					for {
 						if maxCount > 0 && tryCount >= maxCount {
