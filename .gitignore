@@ -2,3 +2,4 @@
 go.sum
 release-*
 repeat_result_*.txt
+/cmd/gmct/gmct

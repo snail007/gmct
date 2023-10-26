@@ -27,6 +27,28 @@ func init() {
 				if len(a) == 0 {
 					return fmt.Errorf("command string is required")
 				}
+				daemon, _ := c.Flags().GetBool("daemon")
+				noDaemon, _ := c.Flags().GetBool("no-daemon")
+				if !noDaemon && daemon {
+					//daemon
+					fmt.Println(os.Args[1:3], os.Args[3:], len(os.Args[3:]))
+					args := []string{}
+					args = append(append(append(args, os.Args[1:3]...), "--disable-daemon"), os.Args[3:]...)
+					dCmd := exec.Command(os.Args[0], args...)
+					fmt.Println(args)
+					//dCmd.Stdout = io.Discard
+					//dCmd.Stderr = io.Discard
+					err := dCmd.Start()
+					if err != nil {
+						glog.Errorf("fail to running in background, error: %v", err.Error())
+					} else {
+						glog.Infof("running in background, pid: %v", dCmd.Process.Pid)
+					}
+					os.Exit(0)
+					return nil
+				}
+				maxCount, _ := c.Flags().GetInt("count")
+				tryCount := 0
 				cmdStr := a[0]
 				signalChan := make(chan os.Signal, 1)
 				signal.Notify(signalChan,
@@ -48,6 +70,10 @@ func init() {
 				go func() {
 					defer g.Done()
 					for {
+						if maxCount > 0 && tryCount >= maxCount {
+							glog.Infof("max try count %v reached", maxCount)
+							os.Exit(0)
+						}
 						if kill {
 							return
 						}
@@ -64,6 +90,7 @@ func init() {
 							return
 						}
 						if err != nil {
+							tryCount++
 							glog.Infof("process exited with %d, restarting...", cmd.Cmd().ProcessState.ExitCode())
 							time.Sleep(time.Second * 5)
 						} else {
@@ -81,6 +108,10 @@ func init() {
 				return nil
 			},
 		}
+		cmdRetry.Flags().Bool("disable-daemon", false, "disable --daemon")
+		cmdRetry.Flags().MarkHidden("disable-daemon")
+		cmdRetry.Flags().BoolP("daemon", "d", false, "running in background")
+		cmdRetry.Flags().IntP("count", "c", 0, "maximum try count, 0 means no limit")
 		execCMD.AddCommand(cmdRetry)
 		root.AddCommand(execCMD)
 	})
