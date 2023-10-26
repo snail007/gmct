@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -65,10 +64,10 @@ func init() {
 					}
 				}()
 				var cmd *gexec.Command
-				g := sync.WaitGroup{}
-				g.Add(1)
 				go func() {
-					defer g.Done()
+					defer func() {
+						close(signalChan)
+					}()
 					for {
 						if maxCount > 0 && tryCount >= maxCount {
 							glog.Infof("max try count %v reached", maxCount)
@@ -104,7 +103,6 @@ func init() {
 				if cmd != nil && cmd.Cmd() != nil && cmd.Cmd().Process != nil {
 					syscall.Kill(-cmd.Cmd().Process.Pid, syscall.SIGKILL)
 				}
-				g.Wait()
 				return nil
 			},
 		}
