@@ -4,6 +4,7 @@ import (
 	_ "github.com/snail007/gmct/module/controller"
 	_ "github.com/snail007/gmct/module/cover"
 	_ "github.com/snail007/gmct/module/docker"
+	_ "github.com/snail007/gmct/module/exec"
 	_ "github.com/snail007/gmct/module/file"
 	_ "github.com/snail007/gmct/module/go"
 	_ "github.com/snail007/gmct/module/gtag"
