@@ -27,16 +27,14 @@ func init() {
 					return fmt.Errorf("command string is required")
 				}
 				daemon, _ := c.Flags().GetBool("daemon")
-				noDaemon, _ := c.Flags().GetBool("no-daemon")
-				if !noDaemon && daemon {
-					//daemon
-					fmt.Println(os.Args[1:3], os.Args[3:], len(os.Args[3:]))
-					args := []string{}
-					args = append(append(append(args, os.Args[1:3]...), "--disable-daemon"), os.Args[3:]...)
+				if daemon {
+					var args []string
+					for _, v := range os.Args[1:] {
+						if v != "-d" && v != "--daemon" {
+							args = append(args, v)
+						}
+					}
 					dCmd := exec.Command(os.Args[0], args...)
-					fmt.Println(args)
-					//dCmd.Stdout = io.Discard
-					//dCmd.Stderr = io.Discard
 					err := dCmd.Start()
 					if err != nil {
 						glog.Errorf("fail to running in background, error: %v", err.Error())
@@ -110,8 +108,6 @@ func init() {
 				return nil
 			},
 		}
-		cmdRetry.Flags().Bool("disable-daemon", false, "disable --daemon")
-		cmdRetry.Flags().MarkHidden("disable-daemon")
 		cmdRetry.Flags().BoolP("daemon", "d", false, "running in background")
 		cmdRetry.Flags().IntP("count", "c", 0, "maximum try count, 0 means no limit")
 		execCMD.AddCommand(cmdRetry)

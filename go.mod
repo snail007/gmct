@@ -8,12 +8,12 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/pkg/errors v0.8.1
 	github.com/schollz/progressbar/v3 v3.8.1
-	github.com/snail007/gmc v0.0.0-20231026130815-2b7208f1d516
+	github.com/snail007/gmc v0.0.0-20231027092613-dcbf37a47cdb
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
-	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8
+	golang.org/x/crypto v0.1.0
+	golang.org/x/net v0.5.0
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
@@ -50,10 +50,10 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ulikunitz/xz v0.5.8 // indirect
-	golang.org/x/image v0.0.0-20190802002840-cff245a6509b // indirect
-	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
-	golang.org/x/term v0.0.0-20210503060354-a79de5458b56 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/image v0.1.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/yaml.v2 v2.2.4 // indirect
