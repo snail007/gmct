@@ -3,6 +3,7 @@ package exec
 import (
 	"fmt"
 	glog "github.com/snail007/gmc/module/log"
+	gcond "github.com/snail007/gmc/util/cond"
 	gexec "github.com/snail007/gmc/util/exec"
 	"github.com/snail007/gmct/module/module"
 	"github.com/spf13/cobra"
@@ -29,6 +30,10 @@ func init() {
 				daemon, _ := c.Flags().GetBool("daemon")
 				output, _ := c.Flags().GetString("output")
 				maxCount, _ := c.Flags().GetInt("count")
+				seconds, _ := c.Flags().GetInt("sleep")
+				timeout, _ := c.Flags().GetInt("timeout")
+				seconds = gcond.Cond(seconds <= 0, 5, seconds).(int)
+				timeout = gcond.Cond(timeout <= 0, 0, timeout).(int)
 				w, wr := os.Stdout, os.Stderr
 				if output != "" {
 					f, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0755)
@@ -88,14 +93,17 @@ func init() {
 						if kill {
 							return
 						}
-						cmd = gexec.NewCommand(cmdStr).BeforeExec(func(command *gexec.Command, c *exec.Cmd) {
-							c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-							c.Stdout = w
-							c.Stderr = wr
-							c.Stdin = os.Stdin
-						}).AfterExec(func(command *gexec.Command, cmd *exec.Cmd, err error) {
-							glog.Infof("running pid: %d", cmd.Process.Pid)
-						})
+						cmd = gexec.NewCommand(cmdStr).
+							Timeout(time.Second * time.Duration(timeout)).
+							BeforeExec(func(command *gexec.Command, c *exec.Cmd) {
+								c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+								c.Stdout = w
+								c.Stderr = wr
+								c.Stdin = os.Stdin
+							}).
+							AfterExec(func(command *gexec.Command, cmd *exec.Cmd, err error) {
+								glog.Infof("running pid: %d", cmd.Process.Pid)
+							})
 						_, err := cmd.Exec()
 						if kill {
 							return
@@ -103,7 +111,7 @@ func init() {
 						if err != nil {
 							tryCount++
 							glog.Infof("process exited with %d, restarting...", cmd.Cmd().ProcessState.ExitCode())
-							time.Sleep(time.Second * 5)
+							time.Sleep(time.Second * time.Duration(seconds))
 						} else {
 							glog.Infof("process exited with %d", cmd.Cmd().ProcessState.ExitCode())
 							return
@@ -118,6 +126,8 @@ func init() {
 				return nil
 			},
 		}
+		cmdRetry.Flags().IntP("timeout", "t", 0, "command timeout seconds, exceeded will be kill. 0: unlimited")
+		cmdRetry.Flags().IntP("sleep", "s", 5, "sleep seconds before restarting")
 		cmdRetry.Flags().StringP("output", "o", "", "the file logging output to")
 		cmdRetry.Flags().BoolP("daemon", "d", false, "running in background")
 		cmdRetry.Flags().IntP("count", "c", 0, "maximum try count, 0 means no limit")
