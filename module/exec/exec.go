@@ -27,6 +27,17 @@ func init() {
 					return fmt.Errorf("command string is required")
 				}
 				daemon, _ := c.Flags().GetBool("daemon")
+				output, _ := c.Flags().GetString("output")
+				maxCount, _ := c.Flags().GetInt("count")
+				w, wr := os.Stdout, os.Stderr
+				if output != "" {
+					f, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0755)
+					if err != nil {
+						return err
+					}
+					w, wr = f, f
+					glog.SetOutput(glog.NewLoggerWriter(f))
+				}
 				if daemon {
 					var args []string
 					for _, v := range os.Args[1:] {
@@ -44,7 +55,6 @@ func init() {
 					os.Exit(0)
 					return nil
 				}
-				maxCount, _ := c.Flags().GetInt("count")
 				tryCount := 0
 				cmdStr := a[0]
 				signalChan := make(chan os.Signal, 1)
@@ -80,8 +90,8 @@ func init() {
 						}
 						cmd = gexec.NewCommand(cmdStr).BeforeExec(func(command *gexec.Command, c *exec.Cmd) {
 							c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-							c.Stdout = os.Stdout
-							c.Stderr = os.Stderr
+							c.Stdout = w
+							c.Stderr = wr
 							c.Stdin = os.Stdin
 						}).AfterExec(func(command *gexec.Command, cmd *exec.Cmd, err error) {
 							glog.Infof("running pid: %d", cmd.Process.Pid)
@@ -108,6 +118,7 @@ func init() {
 				return nil
 			},
 		}
+		cmdRetry.Flags().StringP("output", "o", "", "the file logging output to")
 		cmdRetry.Flags().BoolP("daemon", "d", false, "running in background")
 		cmdRetry.Flags().IntP("count", "c", 0, "maximum try count, 0 means no limit")
 		execCMD.AddCommand(cmdRetry)
