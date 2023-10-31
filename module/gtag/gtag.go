@@ -15,9 +15,6 @@ func init() {
 			Use:  "gtag",
 			Long: "print go mod require tag of git repository in current directory",
 			RunE: func(c *cobra.Command, a []string) error {
-				if len(a) == 0 {
-					return fmt.Errorf("execute arguments required")
-				}
 				srv := NewGTag()
 				err := srv.init()
 				if err != nil {

@@ -79,7 +79,6 @@ func init() {
 							return
 						}
 						cmd = gexec.NewCommand(cmdStr).BeforeExec(func(command *gexec.Command, c *exec.Cmd) {
-							c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 							c.Stdout = os.Stdout
 							c.Stderr = os.Stderr
 							c.Stdin = os.Stdin

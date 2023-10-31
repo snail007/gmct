@@ -1,6 +1,6 @@
 module github.com/snail007/gmct
 
-go 1.19
+go 1.20
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.5

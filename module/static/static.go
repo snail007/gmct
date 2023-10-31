@@ -35,7 +35,7 @@ func init() {
 				return srv.Start()
 			},
 		}
-		cmd.Flags().String("dir", "", "template's static directory path, gmct will convert all static files in the folder to one go file")
+		cmd.Flags().String("dir", ".", "template's static directory path, gmct will convert all static files in the folder to one go file")
 		cmd.Flags().String("ext", "", "extension of exclude static files")
 		cmd.Flags().Bool("clean", false, "clean packed file, if exists")
 		root.AddCommand(cmd)

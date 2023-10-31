@@ -35,8 +35,8 @@ func init() {
 				return srv.Start()
 			},
 		}
-		cmd.Flags().String("dir", "", "template's template directory path, gmct will convert all template files in the folder to one go file")
-		cmd.Flags().String("ext", "", "extension of template files")
+		cmd.Flags().String("dir", ".", "template's template directory path, gmct will convert all template files in the folder to one go file")
+		cmd.Flags().String("ext", ".html", "extension of template files")
 		cmd.Flags().Bool("clean", false, "clean packed file, if exists")
 		root.AddCommand(cmd)
 
@@ -63,7 +63,7 @@ func (s *Template) init() (err error) {
 	if s.args.Dir == "" {
 		return fmt.Errorf("templates directory not exists")
 	}
-	//convert pack path to absoulte path of *nix style
+	//convert pack path to absolute path of *nix style
 	s.args.Dir, err = filepath.Abs(s.args.Dir)
 	if err != nil {
 		return
