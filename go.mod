@@ -8,7 +8,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/pkg/errors v0.8.1
 	github.com/schollz/progressbar/v3 v3.8.1
-	github.com/snail007/gmc v0.0.0-20231027092613-dcbf37a47cdb
+	github.com/snail007/gmc v0.0.0-20231031062904-f944bb4088cf
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.8.0

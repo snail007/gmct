@@ -96,7 +96,6 @@ func init() {
 						cmd = gexec.NewCommand(cmdStr).
 							Timeout(time.Second * time.Duration(timeout)).
 							BeforeExec(func(command *gexec.Command, c *exec.Cmd) {
-								c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 								c.Stdout = w
 								c.Stderr = wr
 								c.Stdin = os.Stdin
@@ -121,7 +120,7 @@ func init() {
 				sig = <-signalChan
 				kill = true
 				if cmd != nil && cmd.Cmd() != nil && cmd.Cmd().Process != nil {
-					syscall.Kill(-cmd.Cmd().Process.Pid, syscall.SIGKILL)
+					killCmd(cmd.Cmd())
 				}
 				return nil
 			},
