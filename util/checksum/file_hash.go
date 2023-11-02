@@ -6,8 +6,12 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"fmt"
+	gsync "github.com/snail007/gmc/util/sync"
 	"hash"
 	"os"
+	"sync"
+	"time"
 
 	"golang.org/x/crypto/blake2s"
 )
@@ -53,12 +57,42 @@ func sum(hashAlgorithm hash.Hash, filename string) (string, error) {
 	if info, err := os.Stat(filename); err != nil || info.IsDir() {
 		return "", err
 	}
-
-	file, err := os.Open(filename)
+	var file *os.File
+	var err error
+	g := sync.WaitGroup{}
+	g.Add(1)
+	go func() {
+		defer g.Done()
+		file, err = os.Open(filename)
+	}()
+	select {
+	case <-gsync.Wait(&g):
+	case <-time.After(time.Second * 3):
+		return "", fmt.Errorf("open file timeout, %s", filename)
+	}
 	if err != nil {
 		return "", err
 	}
 	defer func() { _ = file.Close() }()
 
-	return sumReader(hashAlgorithm, bufio.NewReader(file))
+	return sumReader(hashAlgorithm, newBufReaderCloser(file))
+}
+
+type bufReaderCloser struct {
+	*bufio.Reader
+	f *os.File
+}
+
+func (s *bufReaderCloser) Close() error {
+	if s.f != nil {
+		return s.f.Close()
+	}
+	return nil
+}
+
+func newBufReaderCloser(f *os.File) *bufReaderCloser {
+	return &bufReaderCloser{
+		f:      f,
+		Reader: bufio.NewReaderSize(f, 1024*8),
+	}
 }

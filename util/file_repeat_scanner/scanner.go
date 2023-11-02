@@ -9,12 +9,13 @@ import (
 	"github.com/snail007/gmc/util/gpool"
 	glist "github.com/snail007/gmc/util/list"
 	gmap "github.com/snail007/gmc/util/map"
+	gset "github.com/snail007/gmc/util/set"
 	"github.com/snail007/gmct/util/checksum"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -178,7 +179,6 @@ func (s *RepeatFileScanner) DeleteRepeat() {
 }
 func (s *RepeatFileScanner) Scan() *RepeatFileScanner {
 	s.dir = gfile.Abs(s.dir)
-	g := sync.WaitGroup{}
 	filepath.Walk(s.dir, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -205,17 +205,29 @@ func (s *RepeatFileScanner) Scan() *RepeatFileScanner {
 			BarStart:      "[",
 			BarEnd:        "]",
 		}))
-	g.Add(len(s.allFiles))
 	pool := gpool.New(s.workersCount)
 	start := time.Now()
 	s.startTime = start
+	processedCount := new(int64)
+	filelist := gset.New()
 	for _, v := range s.allFiles {
 		item := v
 		path := item.Filepath
 		pool.Submit(func() {
-			defer g.Done()
+			defer func() {
+				filelist.Delete(path)
+				atomic.AddInt64(processedCount, 1)
+				err := bar.Add64(1)
+				if err != nil {
+					fmt.Println("fail to add processed count")
+				}
+			}()
+			filelist.Add(path)
 			file, _ := os.Stat(path)
 			size, _ := gbytes.SizeStr(uint64(file.Size()))
+			if file.Size() == 0 {
+				return
+			}
 			start := time.Now()
 			hash, e := checksum.MD5sum(path)
 			if e != nil {
@@ -235,11 +247,9 @@ func (s *RepeatFileScanner) Scan() *RepeatFileScanner {
 			})
 			list := l.(*glist.List)
 			list.Add(item)
-			bar.Add64(1)
 		})
 	}
-	g.Wait()
-	pool.Stop()
+	pool.WaitDone()
 	s.endTime = time.Now()
 	s.buf.WriteStrLn("scan start at: %s, cost time: %s",
 		start.Format("2006-01-02 15:04:05"), time.Since(start).Round(time.Second).String())
