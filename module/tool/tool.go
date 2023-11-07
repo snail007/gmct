@@ -25,8 +25,8 @@ func init() {
 				})
 			},
 		}
-		httpCMD.Flags().StringP("addr", "l", "", "simple http server listen on")
-		httpCMD.Flags().StringP("root", "d", "", "simple http server root directory")
+		httpCMD.Flags().StringP("addr", "l", ":9669", "simple http server listen on")
+		httpCMD.Flags().StringP("root", "d", ".", "simple http server root directory")
 		httpCMD.Flags().StringP("auth", "a", "", "simple http server basic auth username:password, such as : foouser:foopassowrd")
 		httpCMD.Flags().StringP("upload", "u", "", "simple http server upload url path, default `random`")
 		httpCMD.Flags().StringP("id", "i", "", "set the server id name, example: server01")
