@@ -73,7 +73,7 @@ func init() {
 			},
 		}
 		downloadCMD.Flags().StringP("net", "n", "", "network to scan, format: 192.168.1.0")
-		downloadCMD.Flags().StringP("port", "p", "", "gmct tool http port")
+		downloadCMD.Flags().StringP("port", "p", "9669", "gmct tool http port")
 		downloadCMD.Flags().StringP("file", "f", "*", "filename to download")
 		downloadCMD.Flags().StringP("name", "m", "", "rename download file to")
 		downloadCMD.Flags().IntP("deep", "d", 1, "max directory deep level to list server files, value 0: no limit")
