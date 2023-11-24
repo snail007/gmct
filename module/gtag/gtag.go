@@ -58,7 +58,7 @@ func (s *GTag) Start() (err error) {
 		case "commit":
 			hash = line[1]
 		case "Date:":
-			date, err = time.Parse("2006-01-02 15:04:05", strings.Join(line[1:], " "))
+			date, err = time.ParseInLocation(time.DateTime, strings.Join(line[1:], " "), time.UTC)
 			if err != nil {
 				return err
 			}
@@ -68,8 +68,7 @@ func (s *GTag) Start() (err error) {
 		fmt.Printf("can not find git log in: \n%s", str)
 		return
 	}
-	date = date.In(time.FixedZone("GMT", -8*3600))
-	fmt.Printf("v0.0.0-%s-%s\n", date.Format("20060102150405"), string(hash[:12]))
+	fmt.Printf("v0.0.0-%s-%s\n", date.Format("20060102150405"), hash[:12])
 	return
 }
 

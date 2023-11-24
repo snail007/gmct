@@ -24,7 +24,7 @@ func init() {
 					workers = runtime.NumCPU()
 				}
 				dir := util.Must(c.Flags().GetString("dir")).String()
-				dir = gcond.Cond(dir != "", dir, "./").(string)
+				dir = gcond.Cond(dir != "", dir, "./").String()
 				file_repeat_scanner.NewRepeatFileScanner(dir).
 					Delete(util.Must(c.Flags().GetBool("delete")).Bool()).
 					DeleteOld(util.Must(c.Flags().GetBool("old")).Bool()).

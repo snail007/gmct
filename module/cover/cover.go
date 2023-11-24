@@ -84,7 +84,7 @@ func NewCover(args Args) *Cover {
 }
 
 func (s *Cover) init() (err error) {
-	s.args.Workers = gcond.Cond(s.args.Workers <= 0, runtime.NumCPU(), s.args.Workers).(int)
+	s.args.Workers = gcond.Cond(s.args.Workers <= 0, runtime.NumCPU(), s.args.Workers).Int()
 	return
 }
 

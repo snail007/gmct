@@ -32,8 +32,8 @@ func init() {
 				maxCount, _ := c.Flags().GetInt("count")
 				seconds, _ := c.Flags().GetInt("sleep")
 				timeout, _ := c.Flags().GetInt("timeout")
-				seconds = gcond.Cond(seconds <= 0, 5, seconds).(int)
-				timeout = gcond.Cond(timeout <= 0, 0, timeout).(int)
+				seconds = gcond.Cond(seconds <= 0, 5, seconds).Int()
+				timeout = gcond.Cond(timeout <= 0, 0, timeout).Int()
 				w, wr := os.Stdout, os.Stderr
 				if output != "" {
 					f, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0755)
