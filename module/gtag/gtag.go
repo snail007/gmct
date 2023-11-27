@@ -2,6 +2,7 @@ package gtag
 
 import (
 	"fmt"
+	gcast "github.com/snail007/gmc/util/cast"
 	"github.com/snail007/gmct/module/module"
 	"github.com/spf13/cobra"
 	"os/exec"
@@ -40,7 +41,7 @@ func (s *GTag) init() (err error) {
 }
 
 func (s *GTag) Start() (err error) {
-	cmd := exec.Command("git", "log", "-n", "1", "--date", "format:%Y-%m-%d %H:%M:%S")
+	cmd := exec.Command("git", "log", "-n", "1", "--date", "unix")
 	b, e := cmd.CombinedOutput()
 	if e != nil {
 		fmt.Println(e, "\n", string(b))
@@ -58,17 +59,14 @@ func (s *GTag) Start() (err error) {
 		case "commit":
 			hash = line[1]
 		case "Date:":
-			date, err = time.ParseInLocation(time.DateTime, strings.Join(line[1:], " "), time.UTC)
-			if err != nil {
-				return err
-			}
+			date = time.Unix(gcast.ToInt64(line[1]), 0)
 		}
 	}
 	if hash == "" || date.IsZero() {
 		fmt.Printf("can not find git log in: \n%s", str)
 		return
 	}
-	fmt.Printf("v0.0.0-%s-%s\n", date.Format("20060102150405"), hash[:12])
+	fmt.Printf("v0.0.0-%s-%s\n", date.In(time.UTC).Format("20060102150405"), hash[:12])
 	return
 }
 
