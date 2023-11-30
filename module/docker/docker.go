@@ -55,7 +55,7 @@ func init() {
 		cmd.Flags().StringSliceP("env", "e", []string{}, "environment variable")
 		cmd.Flags().StringSliceP("port", "p", []string{}, "port")
 		cmd.Flags().StringP("name", "n", "", "set container name")
-		cmd.Flags().String("img", "snail007/golang:1.16", "image used to run program")
+		cmd.Flags().String("img", "snail007/golang:latest", "image used to run program")
 		cmd.Flags().Bool("debug", false, "debug output")
 		cmd.Flags().StringP("golang", "g", "", "sets some golang environment variables")
 		cmd.Flags().StringP("work", "w", "/mnt", "set work dir")
