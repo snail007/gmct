@@ -5,7 +5,13 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	glog "github.com/snail007/gmc/module/log"
+	gexec "github.com/snail007/gmc/util/exec"
+	gfile "github.com/snail007/gmc/util/file"
 	ghttp "github.com/snail007/gmc/util/http"
+	gmap "github.com/snail007/gmc/util/map"
+	ghook "github.com/snail007/gmc/util/process/hook"
+	grand "github.com/snail007/gmc/util/rand"
+	gvalue "github.com/snail007/gmc/util/value"
 	"github.com/snail007/gmct/module/module"
 	goinstall "github.com/snail007/gmct/scripts/go/install"
 	"github.com/snail007/gmct/util/config"
@@ -99,6 +105,79 @@ func init() {
 				return nil
 			},
 		})
+		pprofCMD := &cobra.Command{
+			Use: "pprof",
+			RunE: func(c *cobra.Command, a []string) error {
+				if !strings.Contains(a[0], ".") {
+					return fmt.Errorf("arg required")
+				}
+				for idx, v := range a {
+					a[idx] = gfile.Abs(v)
+				}
+				tmpPath := "/tmp/pprof" + grand.String(32)
+				err := os.Mkdir(tmpPath, 0755)
+				if err != nil {
+					return err
+				}
+				defer gexec.NewCommand(fmt.Sprintf("rm -rf %s", tmpPath)).Exec()
+				for _, v := range a {
+					_, err = gexec.NewCommand(fmt.Sprintf("cp %s %s", v, tmpPath)).Exec()
+					if err != nil {
+						return err
+					}
+				}
+				os.Chdir(tmpPath)
+				goVersion := gvalue.Must(c.Flags().GetString("go")).String()
+				port := gvalue.Must(c.Flags().GetString("port")).String()
+				volume, _ := c.Flags().GetStringSlice("volume")
+				volumeStr := ""
+				for _, v := range volume {
+					volumeStr += " -v " + v
+				}
+				info, err := getProfileInfo(a)
+				if err != nil {
+					return err
+				}
+				env := gmap.Mss{
+					"GOSUMDB": "off",
+				}
+				if p := os.Getenv("GOPROXY"); p == "" {
+					env["GOPROXY"] = "https://goproxy.io,direct"
+				}
+				for _, pkg := range info.ImportLibraryList {
+					glog.Infof("download dependency %s", pkg.ModPath())
+					err = goGet(pkg.ModPath(), env, 2)
+					if err != nil {
+						glog.Fatalf("download dependency %s FAIL, error: %s", pkg.ModPath(), err)
+					}
+				}
+				img := "snail007/golang:" + goVersion
+				chGoRoot := ""
+				if info.GoRoot != "/usr/local/go" {
+					chGoRoot = "ln -s /usr/local/go " + info.GoRoot + "; "
+				}
+				pwd := gvalue.Must(os.Getwd()).String()
+				cmd := ` bash -c "` + chGoRoot + ` go tool pprof -no_browser -http 0.0.0.0:8080 ` + gfile.BaseName(a[0]) + `"`
+				dockerName := "pprof_" + grand.String(12)
+				dockerCMD := fmt.Sprintf(
+					`docker run --name %s --rm -i %s -v %s:/mnt -w /mnt -v %s:%s -e GOPATH=%s -p %s:8080 %s %s`,
+					dockerName, volumeStr, pwd, os.Getenv("GOPATH"), info.GoPath, info.GoPath, port, img, cmd)
+				command := gexec.NewCommand(dockerCMD)
+				ghook.RegistShutdown(func() {
+					gexec.NewCommand("docker stop " + dockerName).Detach(true).ExecAsync()
+					command.Kill()
+				})
+				go ghook.WaitShutdown()
+				glog.Infof("server on http://127.0.0.1:%s/", port)
+				_, err = command.Exec()
+				return err
+			},
+		}
+
+		pprofCMD.Flags().String("go", "latest", "go version, example: 1.19, 1.20")
+		pprofCMD.Flags().String("port", "8020", "profile web port")
+		pprofCMD.Flags().StringSliceP("volume", "v", []string{}, "equal to docker -v")
+		goCMD.AddCommand(pprofCMD)
 		root.AddCommand(goCMD)
 	})
 }
