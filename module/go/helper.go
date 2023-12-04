@@ -53,15 +53,21 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 		}
 		if len(out) > 0 {
 			r1 := regexp.MustCompile(`= +([^ ]+)/.[^ /]+ +in +(/[^ ]+)/src/([^ ]+)\n`)
-			m1 := r1.FindStringSubmatch(out)
-			if goroot == "" && len(m1) > 0 && isGoSrcPkg(m1[1]) {
-				goroot = m1[2]
+			m1 := r1.FindAllStringSubmatch(out, -1)
+			for _, v := range m1 {
+				if goroot == "" && len(m1) > 0 && isGoSrcPkg(v[1]) {
+					goroot = v[2]
+				}
+				if gopath == "" && len(m1) > 0 && !isGoSrcPkg(v[1]) {
+					gopath = v[2]
+				}
 			}
+
 			r := regexp.MustCompile(`= +([^ ]+/[^ .]+).[^ ]+ +in +(/[^ /]+)/pkg/mod/([^ ]+)@([^ /]+)[/.]([^ ]*)\n`)
 			m := r.FindAllStringSubmatch(out, -1)
 			for _, v := range m {
 				importPkg := v[1]
-				goPath := v[2]
+				//goPath := v[2]
 				modePkg := v[3]
 				modeVersion := v[4]
 				pkgPath := modePkg + modeVersion
@@ -72,9 +78,6 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 						modPath:    modePkg,
 						modVersion: modeVersion,
 					})
-				}
-				if gopath == "" {
-					gopath = goPath
 				}
 			}
 		}

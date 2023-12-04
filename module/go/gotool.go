@@ -2,9 +2,11 @@ package gotool
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	glog "github.com/snail007/gmc/module/log"
+	gbatch "github.com/snail007/gmc/util/batch"
 	gexec "github.com/snail007/gmc/util/exec"
 	gfile "github.com/snail007/gmc/util/file"
 	ghttp "github.com/snail007/gmc/util/http"
@@ -106,84 +108,116 @@ func init() {
 			},
 		})
 		pprofCMD := &cobra.Command{
-			Use: "pprof",
-			RunE: func(c *cobra.Command, a []string) error {
-				if !strings.Contains(a[0], ".") {
-					return fmt.Errorf("arg required")
-				}
-				for idx, v := range a {
-					a[idx] = gfile.Abs(v)
-				}
-				tmpPath := "/tmp/pprof" + grand.String(32)
-				err := os.Mkdir(tmpPath, 0755)
-				if err != nil {
-					return err
-				}
-				defer gexec.NewCommand(fmt.Sprintf("rm -rf %s", tmpPath)).Exec()
-				for _, v := range a {
-					_, err = gexec.NewCommand(fmt.Sprintf("cp %s %s", v, tmpPath)).Exec()
-					if err != nil {
-						return err
-					}
-				}
-				os.Chdir(tmpPath)
-				goVersion := gvalue.Must(c.Flags().GetString("go")).String()
-				port := gvalue.Must(c.Flags().GetString("port")).String()
-				volume, _ := c.Flags().GetStringSlice("volume")
-				volumeStr := ""
-				for _, v := range volume {
-					volumeStr += " -v " + v
-				}
-				info, err := getProfileInfo(a)
-				if err != nil {
-					return err
-				}
-				img := "snail007/golang:" + goVersion
-				glog.Infof("docker pull %s", img)
-				if _, e := gexec.NewCommand("docker pull " + img).Exec(); e != nil {
-					return e
-				}
-				env := gmap.Mss{
-					"GOSUMDB": "off",
-				}
-				if p := os.Getenv("GOPROXY"); p == "" {
-					env["GOPROXY"] = "https://goproxy.io,direct"
-				}
-				for _, pkg := range info.ImportLibraryList {
-					glog.Infof("found dependency %s", pkg.ModFullPath())
-				}
-				err = goGet(info.ImportLibraryList, env, 2)
-				if err != nil {
-					glog.Fatalf("download dependency FAIL, error: %s", err)
-				}
-				chGoRoot := ""
-				if info.GoRoot != "/usr/local/go" {
-					chGoRoot = "ln -s /usr/local/go " + info.GoRoot + "; "
-				}
-				pwd := gvalue.Must(os.Getwd()).String()
-				cmd := ` bash -c "` + chGoRoot + ` go tool pprof -no_browser -http 0.0.0.0:8080 ` + gfile.BaseName(a[0]) + `"`
-				dockerName := "pprof_" + grand.String(12)
-				dockerCMD := fmt.Sprintf(
-					`docker run --name %s --rm -i %s -v %s:/mnt -w /mnt -v %s:%s -e GOPATH=%s -p %s:8080 %s %s`,
-					dockerName, volumeStr, pwd, os.Getenv("GOPATH"), info.GoPath, info.GoPath, port, img, cmd)
-				command := gexec.NewCommand(dockerCMD)
-				ghook.RegistShutdown(func() {
-					gexec.NewCommand("docker stop " + dockerName).Detach(true).ExecAsync()
-					command.Kill()
-				})
-				go ghook.WaitShutdown()
-				glog.Infof("server on http://127.0.0.1:%s/", port)
-				_, err = command.Exec()
-				return err
-			},
+			Use:  "pprof",
+			RunE: pprof,
 		}
 
 		pprofCMD.Flags().String("go", "latest", "go version, example: 1.19, 1.20")
 		pprofCMD.Flags().String("port", "8020", "profile web port")
 		pprofCMD.Flags().StringSliceP("volume", "v", []string{}, "equal to docker -v")
+		fetchCMD := &cobra.Command{
+			Use:  "fetch",
+			RunE: pprofFetch,
+		}
+		fetchCMD.Flags().IntP("duration", "d", 30, "seconds of profiling")
+		pprofCMD.AddCommand(fetchCMD)
 		goCMD.AddCommand(pprofCMD)
 		root.AddCommand(goCMD)
 	})
+}
+func pprofFetch(c *cobra.Command, a []string) error {
+	if len(a) == 0 {
+		return fmt.Errorf("arg required")
+	}
+	dur := gvalue.Must(c.Flags().GetInt("duration"))
+	baseURL := strings.TrimSuffix(a[0], "/")
+	be := gbatch.NewBatchExecutor()
+	timeout := time.Second * time.Duration(dur.Int()*2)
+	for _, v := range []string{"profile", "heap", "goroutine", "allocs"} { //, "mutex", "block"
+		typ := v
+		be.AppendTask(func(ctx context.Context) (value interface{}, err error) {
+			link := baseURL + "/" + typ + "?seconds=" + dur.String()
+			filename := typ + ".bin"
+			_, err = ghttp.DownloadToFile(link, timeout, nil, nil, filename)
+			return
+		})
+	}
+	rs := be.WaitAll()
+	for _, r := range rs {
+		if r.Err() != nil {
+			return r.Err()
+		}
+	}
+	return nil
+}
+func pprof(c *cobra.Command, a []string) error {
+	if len(a) == 0 {
+		return fmt.Errorf("arg required")
+	}
+	for idx, v := range a {
+		a[idx] = gfile.Abs(v)
+	}
+	tmpPath := "/tmp/pprof" + grand.String(32)
+	err := os.Mkdir(tmpPath, 0755)
+	if err != nil {
+		return err
+	}
+	defer gexec.NewCommand(fmt.Sprintf("rm -rf %s", tmpPath)).Exec()
+	for _, v := range a {
+		_, err = gexec.NewCommand(fmt.Sprintf("cp %s %s", v, tmpPath)).Exec()
+		if err != nil {
+			return err
+		}
+	}
+	os.Chdir(tmpPath)
+	goVersion := gvalue.Must(c.Flags().GetString("go")).String()
+	port := gvalue.Must(c.Flags().GetString("port")).String()
+	volume, _ := c.Flags().GetStringSlice("volume")
+	volumeStr := ""
+	for _, v := range volume {
+		volumeStr += " -v " + v
+	}
+	info, err := getProfileInfo(a)
+	if err != nil {
+		return err
+	}
+	img := "snail007/golang:" + goVersion
+	glog.Infof("docker pull %s", img)
+	if _, e := gexec.NewCommand("docker pull " + img).Exec(); e != nil {
+		return e
+	}
+	env := gmap.Mss{
+		"GOSUMDB": "off",
+	}
+	if p := os.Getenv("GOPROXY"); p == "" {
+		env["GOPROXY"] = "https://goproxy.io,direct"
+	}
+	for _, pkg := range info.ImportLibraryList {
+		glog.Infof("found dependency %s", pkg.ModFullPath())
+	}
+	err = goGet(info.ImportLibraryList, env, 2)
+	if err != nil {
+		glog.Fatalf("download dependency FAIL, error: %s", err)
+	}
+	chGoRoot := ""
+	if info.GoRoot != "/usr/local/go" {
+		chGoRoot = "ln -s /usr/local/go " + info.GoRoot + "; "
+	}
+	pwd := gvalue.Must(os.Getwd()).String()
+	cmd := ` bash -c "` + chGoRoot + ` go tool pprof -no_browser -http 0.0.0.0:8080 ` + gfile.BaseName(a[0]) + `"`
+	dockerName := "pprof_" + grand.String(12)
+	dockerCMD := fmt.Sprintf(
+		`docker run --name %s --rm -i %s -v %s:/mnt -w /mnt -v %s:%s -e GOPATH=%s -p %s:8080 %s %s`,
+		dockerName, volumeStr, pwd, os.Getenv("GOPATH"), info.GoPath, info.GoPath, port, img, cmd)
+	command := gexec.NewCommand(dockerCMD)
+	ghook.RegistShutdown(func() {
+		gexec.NewCommand("docker stop " + dockerName).Detach(true).ExecAsync()
+		command.Kill()
+	})
+	go ghook.WaitShutdown()
+	glog.Infof("server on http://127.0.0.1:%s/", port)
+	_, err = command.Exec()
+	return err
 }
 
 type GoTool struct {
