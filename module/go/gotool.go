@@ -138,6 +138,11 @@ func init() {
 				if err != nil {
 					return err
 				}
+				img := "snail007/golang:" + goVersion
+				glog.Infof("docker pull %s", img)
+				if _, e := gexec.NewCommand("docker pull " + img).Exec(); e != nil {
+					return e
+				}
 				env := gmap.Mss{
 					"GOSUMDB": "off",
 				}
@@ -151,7 +156,6 @@ func init() {
 				if err != nil {
 					glog.Fatalf("download dependency FAIL, error: %s", err)
 				}
-				img := "snail007/golang:" + goVersion
 				chGoRoot := ""
 				if info.GoRoot != "/usr/local/go" {
 					chGoRoot = "ln -s /usr/local/go " + info.GoRoot + "; "
