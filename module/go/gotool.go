@@ -145,11 +145,11 @@ func init() {
 					env["GOPROXY"] = "https://goproxy.io,direct"
 				}
 				for _, pkg := range info.ImportLibraryList {
-					glog.Infof("download dependency %s", pkg.ModPath())
-					err = goGet(pkg.ModPath(), env, 2)
-					if err != nil {
-						glog.Fatalf("download dependency %s FAIL, error: %s", pkg.ModPath(), err)
-					}
+					glog.Infof("found dependency %s", pkg.ModFullPath())
+				}
+				err = goGet(info.ImportLibraryList, env, 2)
+				if err != nil {
+					glog.Fatalf("download dependency FAIL, error: %s", err)
 				}
 				img := "snail007/golang:" + goVersion
 				chGoRoot := ""
