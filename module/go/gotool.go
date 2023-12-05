@@ -11,6 +11,7 @@ import (
 	gfile "github.com/snail007/gmc/util/file"
 	ghttp "github.com/snail007/gmc/util/http"
 	gmap "github.com/snail007/gmc/util/map"
+	gnet "github.com/snail007/gmc/util/net"
 	ghook "github.com/snail007/gmc/util/process/hook"
 	grand "github.com/snail007/gmc/util/rand"
 	gvalue "github.com/snail007/gmc/util/value"
@@ -20,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -30,6 +32,7 @@ var (
 		"dlv":      "github.com/go-delve/delve/cmd/dlv",
 		"gomobile": "golang.org/x/mobile/cmd/gomobile;gomobile init",
 	}
+	pprofTypes = []string{"profile", "heap", "goroutine", "allocs", "mutex", "block"}
 )
 
 func init() {
@@ -107,19 +110,39 @@ func init() {
 				return nil
 			},
 		})
-		pprofCMD := &cobra.Command{
-			Use:  "pprof",
-			RunE: pprof,
-		}
 
+		pprofCMD := &cobra.Command{
+			Use: "pprof",
+			RunE: func(c *cobra.Command, args []string) error {
+				if len(args) == 1 && (strings.HasPrefix(args[0], "http://") || strings.HasPrefix(args[0], "https://")) {
+					err := pprofFetch(c, args)
+					if err != nil {
+						return err
+					}
+					args = []string{}
+					for _, v := range pprofTypes {
+						args = append(args, gfile.Abs(v+".pprof"))
+					}
+					defer func() {
+						for _, v := range args {
+							os.Remove(v)
+						}
+					}()
+				}
+				return pprof(c, args)
+			},
+		}
 		pprofCMD.Flags().String("go", "latest", "go version, example: 1.19, 1.20")
-		pprofCMD.Flags().String("port", "8020", "profile web port")
+		pprofCMD.Flags().String("port", "", "profile web port, default: random")
 		pprofCMD.Flags().StringSliceP("volume", "v", []string{}, "equal to docker -v")
+		pprofCMD.Flags().IntP("duration", "d", 30, "seconds of profiling")
+
 		fetchCMD := &cobra.Command{
 			Use:  "fetch",
 			RunE: pprofFetch,
 		}
 		fetchCMD.Flags().IntP("duration", "d", 30, "seconds of profiling")
+
 		pprofCMD.AddCommand(fetchCMD)
 		goCMD.AddCommand(pprofCMD)
 		root.AddCommand(goCMD)
@@ -129,16 +152,20 @@ func pprofFetch(c *cobra.Command, a []string) error {
 	if len(a) == 0 {
 		return fmt.Errorf("arg required")
 	}
-	dur := gvalue.Must(c.Flags().GetInt("duration"))
+	dur := gvalue.MustAny(c.Flags().GetInt("duration"))
 	baseURL := strings.TrimSuffix(a[0], "/")
 	be := gbatch.NewBatchExecutor()
 	timeout := time.Second * time.Duration(dur.Int()*2)
-	for _, v := range []string{"profile", "heap", "goroutine", "allocs"} { //, "mutex", "block"
+	for _, v := range pprofTypes {
 		typ := v
 		be.AppendTask(func(ctx context.Context) (value interface{}, err error) {
 			link := baseURL + "/" + typ + "?seconds=" + dur.String()
-			filename := typ + ".bin"
-			_, err = ghttp.DownloadToFile(link, timeout, nil, nil, filename)
+			filename := typ + ".pprof"
+			resp, err := ghttp.DownloadToFile(link, timeout, nil, nil, filename)
+			if resp != nil && resp.StatusCode != 200 {
+				err = fmt.Errorf("reponse %d", resp.StatusCode)
+				return
+			}
 			return
 		})
 	}
@@ -204,19 +231,40 @@ func pprof(c *cobra.Command, a []string) error {
 		chGoRoot = "ln -s /usr/local/go " + info.GoRoot + "; "
 	}
 	pwd := gvalue.Must(os.Getwd()).String()
-	cmd := ` bash -c "` + chGoRoot + ` go tool pprof -no_browser -http 0.0.0.0:8080 ` + gfile.BaseName(a[0]) + `"`
-	dockerName := "pprof_" + grand.String(12)
-	dockerCMD := fmt.Sprintf(
-		`docker run --name %s --rm -i %s -v %s:/mnt -w /mnt -v %s:%s -e GOPATH=%s -p %s:8080 %s %s`,
-		dockerName, volumeStr, pwd, os.Getenv("GOPATH"), info.GoPath, info.GoPath, port, img, cmd)
-	command := gexec.NewCommand(dockerCMD)
-	ghook.RegistShutdown(func() {
-		gexec.NewCommand("docker stop " + dockerName).Detach(true).ExecAsync()
-		command.Kill()
-	})
-	go ghook.WaitShutdown()
-	glog.Infof("server on http://127.0.0.1:%s/", port)
-	_, err = command.Exec()
+	var kills []func()
+	defer func() {
+		for _, k := range kills {
+			k()
+		}
+	}()
+	for _, v1 := range a {
+		dockerName := "pprof_" + grand.String(12)
+		filename := filepath.Base(v1)
+		p := port
+		if p == "" {
+			p, _ = gnet.RandomPort()
+		}
+		cmd := ` bash -c "` + chGoRoot + ` go tool pprof -no_browser -http 0.0.0.0:8080 ` + gfile.BaseName(v1) + `"`
+		dockerCMD := fmt.Sprintf(
+			`docker run --name %s --rm -i %s -v %s:/mnt -w /mnt -v %s:%s -e GOPATH=%s -p %s:8080 %s %s`,
+			dockerName, volumeStr, pwd, os.Getenv("GOPATH"), info.GoPath, info.GoPath, p, img, cmd)
+		command := gexec.NewCommand(dockerCMD)
+		var kill = func() {
+			gexec.NewCommand("docker stop " + dockerName).Detach(true).ExecAsync()
+			command.Kill()
+		}
+		kills = append(kills, kill)
+		ghook.RegistShutdown(func() {
+			go kill()
+			time.Sleep(time.Second * 3)
+		})
+		glog.Infof("["+filename+"] on http://127.0.0.1:%s/", p)
+		err = command.ExecAsync()
+		if err != nil {
+			return err
+		}
+	}
+	ghook.WaitShutdown()
 	return err
 }
 

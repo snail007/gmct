@@ -52,7 +52,7 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 			out, _ = gexec.NewCommand(`go tool pprof -list ".*"  ` + file).Exec()
 		}
 		if len(out) > 0 {
-			r1 := regexp.MustCompile(`= +([^ ]+)/.[^ /]+ +in +(/[^ ]+)/src/([^ ]+)\n`)
+			r1 := regexp.MustCompile(`= +([^ ]+)/.[^ /]+ +in +(/[^ ]+)/(?:(?:pkg/mod)|src)/([^ ]+)\n`)
 			m1 := r1.FindAllStringSubmatch(out, -1)
 			for _, v := range m1 {
 				if goroot == "" && len(m1) > 0 && isGoSrcPkg(v[1]) {
@@ -63,7 +63,7 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 				}
 			}
 
-			r := regexp.MustCompile(`= +([^ ]+/[^ .]+).[^ ]+ +in +(/[^ /]+)/pkg/mod/([^ ]+)@([^ /]+)[/.]([^ ]*)\n`)
+			r := regexp.MustCompile(`= +([^ ]+/[^ .]+).[^ ]+ +in +(/[^ ]+)/pkg/mod/([^ ]+)@([^ /]+)[/.]([^ ]*)\n`)
 			m := r.FindAllStringSubmatch(out, -1)
 			for _, v := range m {
 				importPkg := v[1]
@@ -96,16 +96,6 @@ func isGoSrcPkg(p string) bool {
 }
 
 func goGet(pkg []libraryInfoItem, env map[string]string, retryCount int) (err error) {
-	pkg = append(pkg, libraryInfoItem{
-		importPath: "github.com/snail007/gmc",
-		modPath:    "github.com/snail007/gmc",
-		modVersion: "v0.0.0-20231123060051-0fe39a0c15ef",
-	})
-	pkg = append(pkg, libraryInfoItem{
-		importPath: "github.com/shirou/gopsutil",
-		modPath:    "github.com/shirou/gopsutil",
-		modVersion: "v2.18.12",
-	})
 	pwd, _ := os.Getwd()
 	defer os.Chdir(pwd)
 	tmpPath := "/tmp/gogetmod" + grand.String(32)
@@ -121,9 +111,9 @@ RETRY:
 	bufMain.WriteStrLn("package main")
 	for _, v := range pkg {
 		bufMain.WriteStrLn(`import _ "%s"`, v.importPath)
-		if v.ImportPath() != v.ModPath() {
-			gexec.NewCommand(fmt.Sprintf("go mod edit -replace=%s=%s", v.ImportPath(), v.ModFullPath())).Env(env).Exec()
-		}
+		//if v.ImportPath() != v.ModPath() {
+		//	gexec.NewCommand(fmt.Sprintf("go mod edit -replace=%s=%s", v.ImportPath(), v.ModFullPath())).Env(env).Exec()
+		//}
 	}
 	gfile.WriteString("main.go", bufMain.String(), false)
 	_, err = gexec.NewCommand("go mod tidy").Env(env).Exec()
