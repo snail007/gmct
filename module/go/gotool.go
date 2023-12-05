@@ -143,6 +143,28 @@ func init() {
 		}
 		fetchCMD.Flags().IntP("duration", "d", 30, "seconds of profiling")
 
+		stopPprofCMD := &cobra.Command{
+			Use: "stop",
+			RunE: func(c *cobra.Command, a []string) (err error) {
+				out, err := gexec.NewCommand("docker ps |grep gmct_pprof_").Exec()
+				be := gbatch.NewBatchExecutor()
+				for _, l := range strings.Split(out, "\n") {
+					arr := strings.Fields(l)
+					if len(arr) < 1 {
+						continue
+					}
+					name := arr[len(arr)-1]
+					be.AppendTask(func(ctx context.Context) (value interface{}, err error) {
+						glog.Infof("killing %s", name)
+						gexec.NewCommand("docker stop " + name).Exec()
+						return nil, nil
+					})
+				}
+				be.WaitAll()
+				return
+			},
+		}
+		pprofCMD.AddCommand(stopPprofCMD)
 		pprofCMD.AddCommand(fetchCMD)
 		goCMD.AddCommand(pprofCMD)
 		root.AddCommand(goCMD)
@@ -231,35 +253,19 @@ func pprof(c *cobra.Command, a []string) error {
 		chGoRoot = "ln -s /usr/local/go " + info.GoRoot + "; "
 	}
 	pwd := gvalue.Must(os.Getwd()).String()
-	var kills []func()
-	defer func() {
-		for _, k := range kills {
-			k()
-		}
-	}()
 	for _, v1 := range a {
-		dockerName := "pprof_" + grand.String(12)
+		dockerName := "gmct_pprof_" + grand.String(12)
 		filename := filepath.Base(v1)
 		p := port
 		if p == "" {
 			p, _ = gnet.RandomPort()
 		}
+		glog.Infof("["+filename+"] on http://127.0.0.1:%s/", p)
 		cmd := ` bash -c "` + chGoRoot + ` go tool pprof -no_browser -http 0.0.0.0:8080 ` + gfile.BaseName(v1) + `"`
 		dockerCMD := fmt.Sprintf(
 			`docker run --name %s --rm -i %s -v %s:/mnt -w /mnt -v %s:%s -e GOPATH=%s -p %s:8080 %s %s`,
 			dockerName, volumeStr, pwd, os.Getenv("GOPATH"), info.GoPath, info.GoPath, p, img, cmd)
-		command := gexec.NewCommand(dockerCMD)
-		var kill = func() {
-			gexec.NewCommand("docker stop " + dockerName).Detach(true).ExecAsync()
-			command.Kill()
-		}
-		kills = append(kills, kill)
-		ghook.RegistShutdown(func() {
-			go kill()
-			time.Sleep(time.Second * 3)
-		})
-		glog.Infof("["+filename+"] on http://127.0.0.1:%s/", p)
-		err = command.ExecAsync()
+		_, err = gexec.NewCommand(dockerCMD).Async(true).Exec()
 		if err != nil {
 			return err
 		}
