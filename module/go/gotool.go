@@ -144,7 +144,7 @@ func init() {
 		fetchCMD.Flags().IntP("duration", "d", 30, "seconds of profiling")
 
 		stopPprofCMD := &cobra.Command{
-			Use: "stop",
+			Use: "clean",
 			RunE: func(c *cobra.Command, a []string) (err error) {
 				out, err := gexec.NewCommand("docker ps |grep gmct_pprof_").Exec()
 				be := gbatch.NewBatchExecutor()
