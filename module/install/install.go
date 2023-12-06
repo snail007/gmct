@@ -35,7 +35,7 @@ func init() {
 				if len(a) == 0 {
 					return fmt.Errorf("args required")
 				}
-				force := c.Name() == "install-force"
+				force := os.Args[1] == "install-force"
 				appVersion, installer := s.getInstaller(a[0])
 				if force {
 					if installer != nil {

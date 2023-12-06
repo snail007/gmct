@@ -322,9 +322,9 @@ func (s *GoTool) getLintCmd() string {
 
 func (s *GoTool) api(apiName string) {
 	info := strings.Split(apiName, ".")
-	path := info[0]
-	method := info[1]
-	queryURL := fmt.Sprintf("https://pkg.go.dev/%s", path)
+	pkg := info[0]
+	method := strings.Join(info[1:], ".")
+	queryURL := fmt.Sprintf("https://pkg.go.dev/%s", pkg)
 	client := ghttp.NewHTTPClient()
 	client.SetDNS("8.8.8.8:53")
 	client.SetProxyFromEnv(true)
@@ -336,7 +336,7 @@ func (s *GoTool) api(apiName string) {
 	if err != nil {
 		glog.Fatalf("parse api info fail, error: %s,\ncontent: %s", err, string(d))
 	}
-	sel := doc.Find("#" + method)
+	sel := doc.Find("#" + strings.Replace(method, ".", `\.`, -1))
 	if len(sel.Nodes) == 0 {
 		glog.Warnf("not found %s info in url: %s", apiName, queryURL)
 		return
