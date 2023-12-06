@@ -41,12 +41,12 @@ func init() {
 					if installer != nil {
 						return installer.InstallForce(appVersion)
 					}
-					return s.do("install", "", true)
+					return s.do("install", a[0], true)
 				} else {
 					if installer != nil {
 						return installer.Install(appVersion)
 					}
-					return s.do("install", "", false)
+					return s.do("install", a[0], false)
 				}
 			},
 		}
@@ -61,7 +61,7 @@ func init() {
 				if installer != nil {
 					return installer.Uninstall(appVersion)
 				}
-				return s.do("uninstall", "", false)
+				return s.do("uninstall", a[0], false)
 			},
 		})
 		root.AddCommand(cmd)
