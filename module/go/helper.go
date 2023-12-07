@@ -52,14 +52,43 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 			out, _ = gexec.NewCommand(`go tool pprof -list ".*"  ` + file).Exec()
 		}
 		if len(out) > 0 {
-			r1 := regexp.MustCompile(`= +([^ ]+)/.[^ /]+ +in +(/[^ ]+)/(?:(?:pkg/mod)|src)/([^ ]+)\n`)
+			r1 := regexp.MustCompile(`= +([^ ]+) +in +([^ ]+\.go)\n`)
 			m1 := r1.FindAllStringSubmatch(out, -1)
 			for _, v := range m1 {
-				if goroot == "" && len(m1) > 0 && isGoSrcPkg(v[1]) {
-					goroot = v[2]
+				if goroot != "" && gopath != "" {
+					break
 				}
-				if gopath == "" && len(m1) > 0 && !isGoSrcPkg(v[1]) {
-					gopath = v[2]
+				p1 := filepath.Dir(v[1])
+				p2 := v[2]
+				p1Path := filepath.Join(p1, strings.SplitN(filepath.Base(v[1]), ".", 2)[0])
+				if isGoSrcPkg(p1Path) {
+					if goroot == "" {
+						idx := strings.Index(p2, "/src/")
+						if idx >= 0 {
+							goroot = p2[:idx]
+						}
+					}
+				} else {
+					if gopath == "" {
+						idx := strings.Index(p2, "/pkg/mod/")
+						if idx >= 0 {
+							gopath = p2[:idx]
+						}
+					}
+				}
+			}
+
+			if gopath == "" {
+				for _, v := range m1 {
+					p1 := filepath.Dir(v[1])
+					p2 := v[2]
+					p1Path := filepath.Join(p1, strings.SplitN(filepath.Base(v[1]), ".", 2)[0])
+					if !isGoSrcPkg(p1Path) {
+						idx := strings.Index(p2, "/src/")
+						if idx >= 0 {
+							gopath = p2[:idx]
+						}
+					}
 				}
 			}
 
@@ -84,8 +113,8 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 	}
 	info.GoRoot = goroot
 	info.GoPath = gopath
-	if info.GoPath == "" || info.GoRoot == "" {
-		return nil, fmt.Errorf("fail to get GOROOT or GOPATH from profile file")
+	if info.GoRoot == "" {
+		return nil, fmt.Errorf("fail to get GOROOT from profile file")
 	}
 	return
 }
