@@ -1,0 +1,236 @@
+<div class="container">
+    <div class="card card-bordered">
+        <header class="card-header">
+            <div class="card-title font-weight-bold">阀值设置 <small> - 超过最小阀值的调用才会被自动分析</small></div>
+        </header>
+        <div class="card-body">
+            <form action="analysis" class="form-horizontal" method="get">
+                <div class="card card-bordered">
+                    <header class="card-header">
+                        <div class="card-title font-weight-bold ">
+                            <i class="mdi mdi-responsive" style="font-size:1.5em;"></i>
+                            CPU占用 <small> - 占用CPU时间百分比</small>
+                        </div>
+                    </header>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="min_cpu">最小阀值:</label>
+                            <input id="min_cpu" name="min_cpu" type="hidden">
+                            <button aria-expanded="false" aria-haspopup="true" class="btn btn-default dropdown-toggle"
+                                    data-toggle="dropdown" type="button"></button>
+                            <ul class="dropdown-menu" value="1%">
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.1%">0.1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.5%">0.5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="1%">1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="3%">3%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="5%">5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="10%">10%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="15%">15%</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-bordered">
+                    <header class="card-header">
+                        <div class="card-title font-weight-bold">
+                            <i class="mdi mdi-memory" style="font-size:1.5em;"></i>
+                            内存分配 <small> - 累积分配内存大小占比</small>
+                        </div>
+                    </header>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="min_memory_size">最小阀值:</label>
+                            <input id="min_memory_size" name="min_memory_size" type="hidden">
+                            <button aria-expanded="false" aria-haspopup="true" class="btn btn-default dropdown-toggle"
+                                    data-toggle="dropdown" type="button"></button>
+                            <ul class="dropdown-menu" value="1%">
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.1%">0.1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.5%">0.5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="1%">1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="3%">3%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="5%">5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="10%">10%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="15%">15%</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-bordered">
+                    <header class="card-header">
+                        <div class="card-title font-weight-bold">
+                            <i class="mdi mdi-transition" style="font-size:1.5em;"></i>
+                            对象创建 <small> - 累积创建对象数量占比</small>
+                        </div>
+                    </header>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="min_memory_objects">最小阀值:</label>
+                            <input id="min_memory_objects" name="min_memory_objects" type="hidden">
+                            <button aria-expanded="false" aria-haspopup="true" class="btn btn-default dropdown-toggle"
+                                    data-toggle="dropdown" type="button"></button>
+                            <ul class="dropdown-menu" value="1%">
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.1%">0.1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.5%">0.5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="1%">1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="3%">3%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="5%">5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="10%">10%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="15%">15%</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-bordered">
+                    <header class="card-header">
+                        <div class="card-title font-weight-bold ">
+                            <i class="mdi mdi-responsive" style="font-size:1.5em;"></i>
+                            Mutex互斥锁 <small> - 互斥锁占用CPU时间百分比</small>
+                        </div>
+                    </header>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="min_mutex">最小阀值:</label>
+                            <input id="min_mutex" name="min_mutex" type="hidden">
+                            <button aria-expanded="false" aria-haspopup="true" class="btn btn-default dropdown-toggle"
+                                    data-toggle="dropdown" type="button"></button>
+                            <ul class="dropdown-menu" value="1%">
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.1%">0.1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.5%">0.5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="1%">1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="3%">3%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="5%">5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="10%">10%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="15%">15%</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-bordered">
+                    <header class="card-header">
+                        <div class="card-title font-weight-bold ">
+                            <i class="mdi mdi-responsive" style="font-size:1.5em;"></i>
+                            Block阻塞 <small> - 阻塞占用CPU时间百分比</small>
+                        </div>
+                    </header>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="min_block">最小阀值:</label>
+                            <input id="min_block" name="min_block" type="hidden">
+                            <button aria-expanded="false" aria-haspopup="true" class="btn btn-default dropdown-toggle"
+                                    data-toggle="dropdown" type="button"></button>
+                            <ul class="dropdown-menu" value="1%">
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.1%">0.1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.5%">0.5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="1%">1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="3%">3%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="5%">5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="10%">10%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="15%">15%</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-bordered">
+                    <header class="card-header">
+                        <div class="card-title font-weight-bold ">
+                            <i class="mdi mdi-responsive" style="font-size:1.5em;"></i>
+                            协程数 <small> - 创建协程数百分比</small>
+                        </div>
+                    </header>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="min_goroutine">最小阀值:</label>
+                            <input id="min_goroutine" name="min_goroutine" type="hidden">
+                            <button aria-expanded="false" aria-haspopup="true" class="btn btn-default dropdown-toggle"
+                                    data-toggle="dropdown" type="button"></button>
+                            <ul class="dropdown-menu" value="1%">
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.1%">0.1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.5%">0.5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="1%">1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="3%">3%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="5%">5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="10%">10%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="15%">15%</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-bordered">
+                    <header class="card-header">
+                        <div class="card-title font-weight-bold">
+                            <i class="mdi mdi-source-fork" style="font-size:1.5em;"></i>
+                            内置通用 <small> - 分析通用内置方法CPU时间占比</small>
+                        </div>
+                    </header>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="min_suggest">最小阀值:</label>
+                            <input id="min_suggest" name="min_suggest" type="hidden">
+                            <button aria-expanded="false" aria-haspopup="true" class="btn btn-default dropdown-toggle"
+                                    data-toggle="dropdown" type="button"></button>
+                            <ul class="dropdown-menu" value="10%">
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.1%">0.1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="0.5%">0.5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="1%">1%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="3%">3%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="5%">5%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="10%">10%</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" value="15%">15%</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-bordered">
+                    <header class="card-header">
+                        <div class="card-title font-weight-bold">
+                            <i class="mdi mdi-source-fork" style="font-size:1.5em;"></i>
+                            分析包路径 <small> - 此包用于分析，格式是import的路径，一个项目设置最顶层的包即可</small>
+                        </div>
+                    </header>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="pkg">分析包路径:</label>
+                            <input class="form-control" id="pkg" name="pkg" placeholder="例如：github.com/snail007/gmc"
+                                   type="text">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-auto">
+                    <button class="btn btn-primary mb-2 font-weight-bold" type="submit">
+                    <span aria-hidden="true" class="spinner-grow spinner-grow-sm" role="status"
+                          style="display: none;"></span>
+                        开始分析
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    window.init.push(function () {
+        $("form").submit(function () {
+            var v = $("#pkg").val().trim();
+            if (v.length == 0) {
+                alert("请输入包路径");
+                return false;
+            }
+            $('body').lyearloading({
+                opacity: 0.2,
+                spinnerSize: 'lg',
+                backgroundColor: '#ffffff',
+                spinnerText: '后台处理中，请稍后...',
+                textColorClass: 'text-info',
+                spinnerColorClass: 'text-info',
+            });
+            return true;
+        });
+    });
+</script>

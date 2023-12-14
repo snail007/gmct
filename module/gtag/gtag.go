@@ -2,10 +2,10 @@ package gtag
 
 import (
 	"fmt"
-	gcast "github.com/snail007/gmc/util/cast"
 	"github.com/snail007/gmct/module/module"
 	"github.com/spf13/cobra"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -41,7 +41,8 @@ func (s *GTag) init() (err error) {
 }
 
 func (s *GTag) Start() (err error) {
-	cmd := exec.Command("git", "log", "-n", "1", "--date", "unix")
+	//git -c log.showsignature=false log --no-decorate -n1 "--format=format:%H %ct %D"
+	cmd := exec.Command("git", "-c", "log.showsignature=false", "log", "--no-decorate", "-n1", "--format=format:%H %ct %D")
 	b, e := cmd.CombinedOutput()
 	if e != nil {
 		fmt.Println(e, "\n", string(b))
@@ -49,23 +50,17 @@ func (s *GTag) Start() (err error) {
 	}
 	str := string(b)
 	hash := ""
-	var date time.Time
-	for _, v := range strings.Split(str, "\n") {
-		line := strings.Fields(v)
-		if len(line) < 2 {
-			continue
-		}
-		switch line[0] {
-		case "commit":
-			hash = line[1]
-		case "Date:":
-			date = time.Unix(gcast.ToInt64(line[1]), 0)
-		}
+
+	f := strings.Fields(string(str))
+	if len(f) < 2 {
+		return fmt.Errorf("unexpected response from git log: %q", str)
 	}
-	if hash == "" || date.IsZero() {
-		fmt.Printf("can not find git log in: \n%s", str)
-		return
+	hash = f[0]
+	t, err := strconv.ParseInt(f[1], 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid time from git log: %q", str)
 	}
+	date := time.Unix(t, 0).UTC()
 	fmt.Printf("v0.0.0-%s-%s\n", date.In(time.UTC).Format("20060102150405"), hash[:12])
 	return
 }

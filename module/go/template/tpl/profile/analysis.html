@@ -1,0 +1,804 @@
+{{$index:=0}}
+<div style="margin: 0 10px;">
+    <div class="card card-bordered">
+        <header class="card-header">
+            <div class="card-title font-weight-bold">自动分析结果 <small> - profile自动分析结果展示</small></div>
+        </header>
+        <div class="card-body">
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <input class="form-control search" id="search" placeholder="请输入搜索内容" type="text">
+                    </div>
+                </div>
+            </div>
+
+            <!-- CPU -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-desktop-tower" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.CPU <small> - 发现以下CPU问题</small>
+                    </div>
+                    <span class="pull-left">{{.cpuData.Total}} | {{.cpuData.Percent}}</span>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>CPU时长</th>
+                            <th>占比</th>
+                        </tr>
+                        {{range $idx,$item:=.cpuData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="4">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>CPU时长</th>
+                                        <th>占比</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 内存分配 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-memory" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.内存分配
+                        <small> - 发现以下内存分配问题</small>
+                    </div>
+                    <span class="pull-left">{{.memoryData.Total}} | {{.memoryData.Percent}}</span>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>分配大小</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.memoryData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="4">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>分配大小</th>
+                                        <th>占比</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 内存使用 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-memory" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.内存使用
+                        <small> - 发现以下内存使用问题</small>
+                    </div>
+                    <span class="pull-left">{{.memoryInuseData.Total}} | {{.memoryInuseData.Percent}}</span>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>分配大小</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.memoryInuseData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="4">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>分配大小</th>
+                                        <th>占比</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 创建对象数 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-transition" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.创建对象数
+                        <small> - 发现以下创建对象问题</small>
+                    </div>
+                    <span class="pull-left">{{.objectsData.Total}} | {{.objectsData.Percent}}</span>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>对象数量</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.objectsData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="4">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>对象数量</th>
+                                        <th>占比</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 对象使用 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-transition" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.对象使用数
+                        <small> - 发现以下对象使用数问题</small>
+                    </div>
+                    <span class="pull-left">{{.objectsInuseData.Total}} | {{.objectsInuseData.Percent}}</span>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>对象数量</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.objectsInuseData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="4">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>对象数量</th>
+                                        <th>占比</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Mutex -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-desktop-tower" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.互斥锁 <small> - 发现以下互斥锁问题</small>
+                    </div>
+                    <span class="pull-left">{{.mutexData.Total}} | {{.mutexData.Percent}}</span>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>CPU时长</th>
+                            <th>占比</th>
+                        </tr>
+                        {{range $idx,$item:=.mutexData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="4">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>CPU时长</th>
+                                        <th>占比</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- block -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-desktop-tower" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.阻塞 <small> - 发现以下阻塞问题</small>
+                    </div>
+                    <span class="pull-left">{{.blockData.Total}} | {{.blockData.Percent}}</span>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>CPU时长</th>
+                            <th>占比</th>
+                        </tr>
+                        {{range $idx,$item:=.blockData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="4">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>CPU时长</th>
+                                        <th>占比</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 创建协程数 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-transition" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.创建协程数
+                        <small> - 发现以下创建协程问题</small>
+                    </div>
+                    <span class="pull-left">{{.goroutineData.Total}} | {{.goroutineData.Percent}}</span>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>协程数量</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.goroutineData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="4">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>协程数量</th>
+                                        <th>占比</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- CPU、内存分配、创建对象数都指向的方法 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-vector-selection" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.CPU、内存分配、创建对象数，都指向的方法
+                        <small> - 发现以下交叉方法，这些方法占用CPU、内存分配、创建对象数，占比都大.</small></div>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>CPU时长</th>
+                            <th>CPU占比</th>
+                            <th>内存分配</th>
+                            <th>内存占比</th>
+                            <th>创建对象</th>
+                            <th>创建占比</th>
+                            <th>总占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.cpuMemoryData}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Path}}</td>
+                            <td>{{$item.CPUInfo.Count}}</td>
+                            <td>{{$item.CPUInfo.Percent}}</td>
+                            <td>{{$item.MemoryInfo.Count}}</td>
+                            <td>{{$item.MemoryInfo.Percent}}</td>
+                            <td>{{$item.ObjectsInfo.Count}}</td>
+                            <td>{{$item.ObjectsInfo.Percent}}</td>
+                            <td>{{$item.OrderTotalPercent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="9">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>外部方法</th>
+                                        <th>末端方法</th>
+                                        <th>大小</th>
+                                        <th>占比</th>
+                                        <th>类型</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Data}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. {{$stack.NextFunc}}
+                                        </td>
+                                        <td>{{$stack.EndFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                        <td>{{$stack.ProfileType}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- CPU、内存使用、对象使用数都指向的方法 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-vector-selection" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.CPU、内存使用、对象使用数，都指向的方法
+                        <small> - 发现以下交叉方法，这些方法占用CPU、内存使用、对象使用数，占比都大.</small></div>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>CPU时长</th>
+                            <th>CPU占比</th>
+                            <th>内存使用</th>
+                            <th>内存占比</th>
+                            <th>对象使用</th>
+                            <th>对象占比</th>
+                            <th>总占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.cpuMemoryInuseData}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Path}}</td>
+                            <td>{{$item.CPUInfo.Count}}</td>
+                            <td>{{$item.CPUInfo.Percent}}</td>
+                            <td>{{$item.MemoryInfo.Count}}</td>
+                            <td>{{$item.MemoryInfo.Percent}}</td>
+                            <td>{{$item.ObjectsInfo.Count}}</td>
+                            <td>{{$item.ObjectsInfo.Percent}}</td>
+                            <td>{{$item.OrderTotalPercent}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="9">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>外部方法</th>
+                                        <th>末端方法</th>
+                                        <th>大小</th>
+                                        <th>占比</th>
+                                        <th>类型</th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Data}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. {{$stack.NextFunc}}
+                                        </td>
+                                        <td>{{$stack.EndFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                        <td>{{$stack.ProfileType}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 内存分配的多使用的少 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-snowflake" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.内存分配与内存使用差值
+                        <small> - 发现以下方法内存分配的多使用的少，考虑内存复用</small></div>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>内存分配</th>
+                            <th>内存使用</th>
+                            <th>差值大小</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.allocDiffInuseData}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.VendorPath}}</td>
+                            <td>{{$item.RawTotal}}</td>
+                            <td>{{$item.DiffTotal}}</td>
+                            <td>{{$item.Total}}</td>
+                            <td>{{$item.Percent}}</td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 创建对象总数与正在使用对象数差值 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-lumx" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.创建对象总数与正在使用对象数差值
+                        <small> - 发现以下方法创建对象多，但是正在使用的少，考虑对象复用</small></div>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>累积总数</th>
+                            <th>正在使用</th>
+                            <th>差值大小</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.allocObjDiffInuseData}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.VendorPath}}</td>
+                            <td>{{$item.RawTotal}}</td>
+                            <td>{{$item.DiffTotal}}</td>
+                            <td>{{$item.Total}}</td>
+                            <td>{{$item.Percent}}</td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 汇总vendor的“转折点方法”占用CPU情况 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-duck" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.“关键方法”占用CPU汇总
+                        <small> - 发现以下关键方法直接或者间接导致占用CPU过多</small></div>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>CPU时长</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.sumVendorCPUData}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.VendorPath}}</td>
+                            <td>{{$item.Total}}</td>
+                            <td>{{$item.Percent}}</td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 汇总vendor的“转折点方法”占用内存分配情况 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-flower-poppy" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.“关键方法”内存分配汇总
+                        <small> - 发现以下关键方法直接或者间接导致内存分配过多</small></div>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>内存分配</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.sumVendorMemoryData}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.VendorPath}}</td>
+                            <td>{{$item.Total}}</td>
+                            <td>{{$item.Percent}}</td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 汇总vendor的“转折点方法”占用内存对象创建情况 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-fish" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.“关键方法”创建对象汇总
+                        <small> - 发现以下关键方法直接或者间接导致创建对象过多</small></div>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>创建对象</th>
+                            <th>占比</th>
+                            <th></th>
+                        </tr>
+                        {{range $idx,$item:=.sumVendorObjectsData}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.VendorPath}}</td>
+                            <td>{{$item.Total}}</td>
+                            <td>{{$item.Percent}}</td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+
+            <!-- 通用CPU分析 -->
+            <div class="card card-bordered">
+                <header class="card-header bg-info profile-header">
+                    <div class="card-title font-weight-bold">
+                        <i class="mdi mdi-source-fork" style="font-size:1.5em;"></i>
+                        {{$index = add $index 1}}{{$index}}.通用CPU分析
+                        <small> - 发现以下通用CPU问题</small></div>
+                </header>
+                <div class="card-body profile-body">
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th>方法路径</th>
+                            <th>CPU时间</th>
+                            <th>占比</th>
+                            <th>优化建议</th>
+                            <th></th>
+                        </tr>
+                        {{$cpuSuggestDataInfo:=.cpuSuggestData.Info}}
+                        {{range $idx,$item:=.cpuSuggestData.Data}}
+                        <tr>
+                            <td>{{add $idx 1}}. {{$item.Info.Path}}</td>
+                            <td>{{$item.Info.Count}}</td>
+                            <td>{{$item.Info.Percent}}</td>
+                            <td class="font-weight-bold">{{(index $cpuSuggestDataInfo $item.Info.Path).Desc}}</td>
+                            <td><a class="mdi mdi-format-list-numbered detail" href="javascript:void(0);">详情</a></td>
+                        </tr>
+                        <tr style="display: none">
+                            <td colspan="5">
+                                <table class="table table-bordered bg-light table-hover">
+                                    <tr>
+                                        <th>关键方法</th>
+                                        <th>外部方法</th>
+                                        <th>CPU时间</th>
+                                        <th>占比</th>
+                                        <th></th>
+                                    </tr>
+                                    {{range $i,$stack:=$item.Stacks}}
+                                    <tr>
+                                        <td>
+                                            {{add $i 1}}. <span class="text text-danger font-weight-bold">{{$stack.VendorFunc}}</span>
+                                        </td>
+                                        <td>{{$stack.NextFunc}}</td>
+                                        <td>{{$stack.Count}}</td>
+                                        <td>{{$stack.Percent}}</td>
+                                    </tr>
+                                    {{end}}
+                                </table>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .profile-body {
+        display: none;
+    }
+
+    .profile-header {
+        cursor: pointer;
+    }
+
+    .highlight {
+        background-color: #faf652;
+    }
+</style>
+<script>
+    window.init.push(function () {
+        $(".detail").click(function () {
+            $(this).parents("tr").next().toggle();
+        });
+        $(".profile-header").click(function () {
+            $(this).next().toggle();
+        });
+        $("#search").on("keyup", function (e) {
+            if (e.keyCode != 13) {
+                return;
+            }
+            var keyword = $("#search").val().trim();
+            $(".card").unhighlight();
+            if (!keyword) {
+                $(".detail").each(function () {
+                    $(this).parents("tr").next().hide();
+                });
+                $(".profile-header").each(function () {
+                    $(this).next().hide();
+                });
+                return;
+            }
+            $(".card").highlight(keyword);
+            $(".profile-header").each(function () {
+                var listTable = $(this).next();
+                if (listTable.text().indexOf(keyword) >= 0) {
+                    listTable.show();
+                } else {
+                    listTable.hide();
+                }
+            });
+            $(".detail").each(function () {
+                var detailTable = $(this).parents("tr").next();
+                if (detailTable.text().indexOf(keyword) >= 0) {
+                    detailTable.show();
+                } else {
+                    detailTable.hide();
+                }
+            });
+        })
+    });
+</script>

@@ -1,4 +1,4 @@
-package gotool
+package gprofile
 
 import (
 	"fmt"
@@ -13,35 +13,35 @@ import (
 	"strings"
 )
 
-type libraryInfoItem struct {
+type LibraryInfoItem struct {
 	importPath string
 	modPath    string
 	modVersion string
 }
 
-func (s libraryInfoItem) ModFullPath() string {
+func (s LibraryInfoItem) ModFullPath() string {
 	return s.modPath + "@" + s.modVersion
 }
 
-func (s libraryInfoItem) ModPath() string {
+func (s LibraryInfoItem) ModPath() string {
 	return s.modPath
 }
-func (s libraryInfoItem) ModVersion() string {
+func (s LibraryInfoItem) ModVersion() string {
 	return s.modVersion
 }
 
-func (s libraryInfoItem) ImportPath() string {
+func (s LibraryInfoItem) ImportPath() string {
 	return s.importPath
 }
 
-type profileInfo struct {
-	ImportLibraryList []libraryInfoItem
+type ProfileInfo struct {
+	ImportLibraryList []LibraryInfoItem
 	GoRoot            string
 	GoPath            string
 }
 
-func getProfileInfo(files []string) (info *profileInfo, err error) {
-	info = new(profileInfo)
+func GetProfileInfo(files []string) (info *ProfileInfo, err error) {
+	info = new(ProfileInfo)
 	gopath := ""
 	goroot := ""
 	pkgSet := gset.New()
@@ -61,7 +61,7 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 				p1 := filepath.Dir(v[1])
 				p2 := v[2]
 				p1Path := filepath.Join(p1, strings.SplitN(filepath.Base(v[1]), ".", 2)[0])
-				if isGoSrcPkg(p1Path) {
+				if IsGoSrcPkg(p1Path) {
 					if goroot == "" {
 						idx := strings.Index(p2, "/src/")
 						if idx >= 0 {
@@ -83,7 +83,7 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 					p1 := filepath.Dir(v[1])
 					p2 := v[2]
 					p1Path := filepath.Join(p1, strings.SplitN(filepath.Base(v[1]), ".", 2)[0])
-					if !isGoSrcPkg(p1Path) {
+					if !IsGoSrcPkg(p1Path) {
 						idx := strings.Index(p2, "/src/")
 						if idx >= 0 {
 							gopath = p2[:idx]
@@ -102,7 +102,7 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 				pkgPath := modePkg + modeVersion
 				if !pkgSet.Contains(pkgPath) {
 					pkgSet.Add(pkgPath)
-					info.ImportLibraryList = append(info.ImportLibraryList, libraryInfoItem{
+					info.ImportLibraryList = append(info.ImportLibraryList, LibraryInfoItem{
 						importPath: importPkg,
 						modPath:    modePkg,
 						modVersion: modeVersion,
@@ -119,15 +119,10 @@ func getProfileInfo(files []string) (info *profileInfo, err error) {
 	return
 }
 
-func isGoSrcPkg(p string) bool {
-	a := strings.SplitN(p, "/", 2)[0]
-	return !(strings.Contains(a, ".") && strings.Contains(p, "/"))
-}
-
-func goGet(pkg []libraryInfoItem, env map[string]string, retryCount int) (err error) {
+func GoGet(pkg []LibraryInfoItem, env map[string]string, retryCount int) (err error) {
 	pwd, _ := os.Getwd()
 	defer os.Chdir(pwd)
-	tmpPath := "/tmp/gogetmod" + grand.String(32)
+	tmpPath := "/tmp/gogetmod_" + grand.String(32)
 	defer gexec.NewCommand("rm -rf " + tmpPath).Exec()
 	os.MkdirAll(tmpPath, 0755)
 	os.Chdir(tmpPath)

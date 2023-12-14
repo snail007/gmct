@@ -7,6 +7,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	glog "github.com/snail007/gmc/module/log"
 	gbatch "github.com/snail007/gmc/util/batch"
+	gcond "github.com/snail007/gmc/util/cond"
 	gexec "github.com/snail007/gmc/util/exec"
 	gfile "github.com/snail007/gmc/util/file"
 	ghttp "github.com/snail007/gmc/util/http"
@@ -18,7 +19,10 @@ import (
 	"github.com/snail007/gmct/module/module"
 	goinstall "github.com/snail007/gmct/scripts/go/install"
 	"github.com/snail007/gmct/util/config"
+	"github.com/snail007/gmct/util/profile"
 	"github.com/spf13/cobra"
+	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -133,6 +137,35 @@ func init() {
 							os.Remove(v)
 						}
 					}()
+					addr := gvalue.Must(c.Flags().GetString("analyze")).String()
+					if addr != "" {
+						fs := &PprofFiles{}
+						var getFilename = func(n string) string {
+							return n + ".pprof"
+						}
+						if f := getFilename("cpu"); gfile.Exists(f) {
+							fs.CpuFile = f
+						}
+						if f := getFilename("mem"); gfile.Exists(f) {
+							fs.MemFile = f
+						}
+						if f := getFilename("goroutine"); gfile.Exists(f) {
+							fs.GoroutineFile = f
+						}
+						if f := getFilename("allocs"); gfile.Exists(f) {
+							fs.AllocsFile = f
+						}
+						if f := getFilename("block"); gfile.Exists(f) {
+							fs.BlockFile = f
+						}
+						if f := getFilename("mutex"); gfile.Exists(f) {
+							fs.MutexFile = f
+						}
+						err = startAnalyzeServer(addr, fs)
+						if err != nil {
+							return err
+						}
+					}
 				}
 				cnt := 0
 				for _, v := range pprofTypes {
@@ -155,11 +188,17 @@ func init() {
 			c.Flags().Bool("allocs", false, "fetch allocs profile in url mode")
 			c.Flags().Bool("block", false, "fetch block profile in url mode")
 			c.Flags().Bool("mutex", false, "fetch mutex profile in url mode")
+			c.Flags().StringSliceP("ignore", "i", []string{}, "ignored library to download")
+			c.Flags().String("pre", "", "access the url before fetch mutex and block profile")
+			c.Flags().String("post", "", "access the url after fetch mutex and block profile")
+
 		}
 
 		pprofCMD.Flags().String("go", "latest", "go version, example: 1.19, 1.20")
 		pprofCMD.Flags().String("port", "", "profile web port, default: random")
 		pprofCMD.Flags().StringSliceP("volume", "v", []string{}, "equal to docker -v")
+		pprofCMD.Flags().StringP("analyze", "a", "", "the ip:port analyze server listen on in url pprof mode")
+
 		bindPprofCommonFlags(pprofCMD)
 
 		fetchCMD := &cobra.Command{
@@ -171,9 +210,14 @@ func init() {
 		}
 		bindPprofCommonFlags(fetchCMD)
 
-		stopPprofCMD := &cobra.Command{
+		cleanPprofCMD := &cobra.Command{
 			Use: "clean",
 			Run: func(c *cobra.Command, a []string) {
+				gexec.NewCommand(`
+rm -rf /tmp/pprof_tmp_*
+rm -rf /tmp/tmp_*.sh
+rm -rf /tmp/gogetmod_*
+`).Exec()
 				out, _ := gexec.NewCommand("docker ps |grep gmct_pprof_").Exec()
 				be := gbatch.NewBatchExecutor()
 				for _, l := range strings.Split(out, "\n") {
@@ -192,19 +236,97 @@ func init() {
 				return
 			},
 		}
-		pprofCMD.AddCommand(stopPprofCMD)
+		analyzeCMD := &cobra.Command{
+			Use: "analyze",
+			RunE: func(c *cobra.Command, a []string) error {
+				files := &PprofFiles{
+					CpuFile:       gvalue.Must(c.Flags().GetString("cpu")).String(),
+					MemFile:       gvalue.Must(c.Flags().GetString("mem")).String(),
+					AllocsFile:    gvalue.Must(c.Flags().GetString("allocs")).String(),
+					GoroutineFile: gvalue.Must(c.Flags().GetString("go")).String(),
+					MutexFile:     gvalue.Must(c.Flags().GetString("mutex")).String(),
+					BlockFile:     gvalue.Must(c.Flags().GetString("block")).String(),
+				}
+				addr := gvalue.Must(c.Flags().GetString("addr")).String()
+				err := startAnalyzeServer(addr, files)
+				if err != nil {
+					return err
+				}
+				ghook.WaitShutdown()
+				return nil
+			},
+		}
+		analyzeCMD.Flags().String("cpu", "", "pprof cpu profile")
+		analyzeCMD.Flags().String("mem", "", "pprof heap profile")
+		analyzeCMD.Flags().String("allocs", "", "pprof allocs profile")
+		analyzeCMD.Flags().String("go", "", "pprof goroutine profile")
+		analyzeCMD.Flags().String("mutex", "", "pprof mutex profile")
+		analyzeCMD.Flags().String("block", "", "pprof block profile")
+		analyzeCMD.Flags().String("addr", "", "ip:port http server listen on")
+
+		pprofCMD.AddCommand(cleanPprofCMD)
 		pprofCMD.AddCommand(fetchCMD)
+		pprofCMD.AddCommand(analyzeCMD)
+
 		goCMD.AddCommand(pprofCMD)
+
 		root.AddCommand(pprofCMD)
 		root.AddCommand(goCMD)
 	})
 }
+
+func startAnalyzeServer(addr string, files *PprofFiles) error {
+	addr = gcond.Cond(addr == "", ":0", addr).String()
+	addr = gcond.Cond(strings.Contains(addr, ":"), addr, ":"+addr).String()
+	h, p, _ := net.SplitHostPort(addr)
+	h = gcond.Cond(h == "", "0.0.0.0", h).String()
+	p = gcond.Cond(p == "", "0", p).String()
+	addr = net.JoinHostPort(h, p)
+	if !files.IsExistsMemFile() || !files.IsExistsCpuFile() {
+		return fmt.Errorf("cpu and mem profile are rqeuired")
+	}
+	server, err := NewPprofServer(addr, files)
+	if err != nil {
+		return err
+	}
+	server.server.Logger().SetOutput(glog.NewLoggerWriter(io.Discard))
+	err = server.Start()
+	if err != nil {
+		return err
+	}
+	glog.Infof("analyze http server on http://127.0.0.1:%s", gnet.NewTCPAddr(server.server.Address()).Port())
+	return nil
+}
+
 func pprofFetch(c *cobra.Command, a []string) (files []string, err error) {
 	if len(a) == 0 {
 		return nil, fmt.Errorf("arg required")
 	}
 	dur := gvalue.MustAny(c.Flags().GetInt("duration"))
 	baseURL := strings.TrimSuffix(a[0], "/")
+	preURL := gvalue.Must(c.Flags().GetString("pre")).String()
+	postURL := gvalue.Must(c.Flags().GetString("post")).String()
+	var isHTTPURL = func(str string) bool {
+		return strings.HasPrefix(str, "http://") || strings.HasPrefix(str, "https://")
+	}
+	if preURL != "" && !isHTTPURL(preURL) {
+		preURL = baseURL + "/" + strings.TrimPrefix(preURL, "/")
+	}
+	if postURL != "" && !isHTTPURL(postURL) {
+		postURL = baseURL + "/" + strings.TrimPrefix(postURL, "/")
+	}
+	var accessURL = func(u, typ string) {
+		if u == "" {
+			return
+		}
+		_, code, _, e := ghttp.Get(u, time.Second*10, nil, nil)
+		if e != nil {
+			glog.Warnf("access "+typ+" url fail, error: %s", e)
+		} else if code != 200 {
+			glog.Warnf("access "+typ+" url fail, response code: %d", code)
+		}
+	}
+	accessURL(preURL, "pre")
 	be := gbatch.NewBatchExecutor()
 	timeout := time.Second * time.Duration(dur.Int()*2)
 	cnt := 0
@@ -231,6 +353,7 @@ func pprofFetch(c *cobra.Command, a []string) (files []string, err error) {
 		return nil, fmt.Errorf("at least one type to profiling, one of cpu,mem,goroutine,allocs,mutex,block")
 	}
 	rs := be.WaitAll()
+	accessURL(postURL, "post")
 	for _, r := range rs {
 		if r.Err() != nil {
 			return nil, r.Err()
@@ -238,10 +361,12 @@ func pprofFetch(c *cobra.Command, a []string) (files []string, err error) {
 	}
 	return
 }
+
 func isExistsDockerImage(name, version string) bool {
 	out, _ := gexec.NewCommand(fmt.Sprintf("docker images %s:%s", name, version)).Exec()
 	return strings.Contains(out, name) && strings.Contains(out, version)
 }
+
 func pprof(c *cobra.Command, a []string) error {
 	if len(a) == 0 {
 		return fmt.Errorf("arg required")
@@ -249,7 +374,7 @@ func pprof(c *cobra.Command, a []string) error {
 	for idx, v := range a {
 		a[idx] = gfile.Abs(v)
 	}
-	tmpPath := "/tmp/pprof" + grand.String(32)
+	tmpPath := "/tmp/pprof_tmp_" + grand.String(32)
 	err := os.Mkdir(tmpPath, 0755)
 	if err != nil {
 		return err
@@ -269,7 +394,7 @@ func pprof(c *cobra.Command, a []string) error {
 	for _, v := range volume {
 		volumeStr += " -v " + v
 	}
-	info, err := getProfileInfo(a)
+	info, err := gprofile.GetProfileInfo(a)
 	if err != nil {
 		return err
 	}
@@ -287,10 +412,24 @@ func pprof(c *cobra.Command, a []string) error {
 	if p := os.Getenv("GOPROXY"); p == "" {
 		env["GOPROXY"] = "https://goproxy.io,direct"
 	}
+	localGopath := os.Getenv("GOPATH")
+	var importLibraryList []gprofile.LibraryInfoItem
+	ignoredList := gvalue.Must(c.Flags().GetStringSlice("ignore")).StringSlice()
+CON:
 	for _, pkg := range info.ImportLibraryList {
-		glog.Infof("found dependency %s", pkg.ModFullPath())
+		for _, v := range ignoredList {
+			if v == pkg.ModPath() {
+				continue CON
+			}
+		}
+		if gfile.IsDir(filepath.Join(localGopath, "pkg/mod", pkg.ModFullPath())) {
+			glog.Infof("found dependency %s exists", pkg.ModFullPath())
+		} else {
+			importLibraryList = append(importLibraryList, pkg)
+			glog.Infof("found dependency %s downloading...", pkg.ModFullPath())
+		}
 	}
-	err = goGet(info.ImportLibraryList, env, 2)
+	err = gprofile.GoGet(importLibraryList, env, 2)
 	if err != nil {
 		glog.Fatalf("download dependency FAIL, error: %s", err)
 	}
@@ -300,9 +439,10 @@ func pprof(c *cobra.Command, a []string) error {
 	}
 	pwd := gvalue.Must(os.Getwd()).String()
 	dockerNames := []string{}
+	rid := grand.String(12)
 	for _, v1 := range a {
 		filename := filepath.Base(v1)
-		dockerName := "gmct_pprof_" + gfile.FileName(filename) + "_" + grand.String(12)
+		dockerName := "gmct_pprof_" + gfile.FileName(filename) + "_" + rid
 		dockerNames = append(dockerNames, dockerName)
 		p := port
 		if p == "" {
@@ -346,6 +486,7 @@ type GoTool struct {
 func NewGoTool() *GoTool {
 	return &GoTool{}
 }
+
 func (s *GoTool) getVetCmd() string {
 	vetSkipWords := []string{
 		"vendor/",

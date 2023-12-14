@@ -22,7 +22,7 @@ if [ -e "\$GO_ROOT" ];then
     exit
   fi
 fi
-newVer=\$(ls \$GO_VER_DIR|grep "go\$VER"|sort|tail -n 1)
+newVer=\$(ls \$GO_VER_DIR|grep "go\$VER"|sort -V|tail -n 1)
 if [ -z "\$newVer" ]; then
   echo -e "none go found in: \$GO_VER_DIR"
   exit
