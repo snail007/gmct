@@ -1,4 +1,4 @@
-package tool
+package web
 
 import (
 	"github.com/snail007/gmct/module/module"
@@ -16,7 +16,7 @@ func init() {
 			Long:    "simple http server",
 			Aliases: []string{"http", "www"},
 			Run: func(c *cobra.Command, a []string) {
-				s.httpServer(HTTPArgs{
+				httpServer(HTTPArgs{
 					Addr:     util.Must(c.Flags().GetString("addr")).String(),
 					RootDir:  util.Must(c.Flags().GetString("root")).String(),
 					Auth:     util.Must(c.Flags().GetStringSlice("auth")).StringSlice(),
@@ -84,14 +84,6 @@ func init() {
 		downloadCMD.Flags().IntP("timeout", "t", 3, "timeout seconds to connect to server")
 		downloadCMD.Flags().StringP("dir", "c", "download_files", "path to download all files")
 
-		ipCMD := &cobra.Command{
-			Use:  "ip",
-			Long: "ip toolkit",
-			Run: func(c *cobra.Command, a []string) {
-				s.ip()
-			},
-		}
-		root.AddCommand(ipCMD)
 		root.AddCommand(httpCMD)
 		root.AddCommand(downloadCMD)
 	})

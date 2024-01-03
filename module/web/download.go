@@ -1,10 +1,11 @@
-package tool
+package web
 
 import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
 	grand "github.com/snail007/gmc/util/rand"
+	"github.com/snail007/gmct/util"
 	"io"
 	"net"
 	"net/http"
@@ -313,7 +314,7 @@ func (s *Tool) getSubnetArr(args *DownloadArgs) []string {
 		}
 	}
 	if subnetList.Len() == 0 {
-		for _, v := range getLocalIP() {
+		for _, v := range util.GetLocalIP() {
 			subnetList.Add(checkNet(v))
 		}
 	}
