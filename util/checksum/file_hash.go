@@ -66,7 +66,7 @@ func sum(hashAlgorithm hash.Hash, filename string) (string, error) {
 		file, err = os.Open(filename)
 	}()
 	select {
-	case <-gsync.Wait(&g):
+	case <-gsync.WaitGroupToChan(&g):
 	case <-time.After(time.Second * 3):
 		return "", fmt.Errorf("open file timeout, %s", filename)
 	}

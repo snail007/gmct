@@ -9,10 +9,10 @@ require (
 	github.com/magiconair/properties v1.8.1
 	github.com/pkg/errors v0.8.1
 	github.com/schollz/progressbar/v3 v3.8.1
-	github.com/snail007/gmc v0.0.0-20231208020521-f7681880c058
+	github.com/snail007/gmc v0.0.0-20240102034909-048e5cfada0d
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.2
 	golang.org/x/crypto v0.1.0
 	golang.org/x/net v0.5.0
 	golang.org/x/text v0.6.0

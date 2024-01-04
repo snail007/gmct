@@ -134,7 +134,7 @@ func (s *Cover) Start() (err error) {
 	s.debugf("testing packages list, %s", strings.Join(packages, ","))
 	coverProfiles := make([]string, len(packages))
 	payload := "mode: atomic\n"
-	var p *gpool.GPool
+	var p *gpool.Pool
 	if !s.args.Ordered {
 		p = gpool.New(s.args.Workers)
 	}
