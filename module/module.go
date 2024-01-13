@@ -21,4 +21,5 @@ import (
 	_ "github.com/snail007/gmct/module/update"
 	_ "github.com/snail007/gmct/module/url"
 	_ "github.com/snail007/gmct/module/view"
+	_ "github.com/snail007/gmct/module/web"
 )
