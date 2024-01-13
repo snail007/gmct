@@ -1,4 +1,4 @@
-package tool
+package web
 
 import (
 	"crypto/rand"
@@ -7,6 +7,7 @@ import (
 	glog "github.com/snail007/gmc/module/log"
 	gfile "github.com/snail007/gmc/util/file"
 	"github.com/snail007/gmct/tool"
+	"github.com/snail007/gmct/util"
 	"io"
 	"log"
 	"net"
@@ -33,7 +34,7 @@ type HTTPArgs struct {
 	ServerID string
 }
 
-func (s *Tool) httpServer(args HTTPArgs) {
+func httpServer(args HTTPArgs) {
 	fmt.Println(`>>> Simple HTTP Server`)
 	fmt.Println(`Web Root: ` + gfile.Abs(args.RootDir))
 	if id := args.ServerID; id != "" {
@@ -42,7 +43,7 @@ func (s *Tool) httpServer(args HTTPArgs) {
 	fmt.Println(`Powered By: GMCT`)
 	fmt.Println(`Serve list:`)
 	_, port, _ := net.SplitHostPort(args.Addr)
-	for _, v := range getLocalIP() {
+	for _, v := range util.GetLocalIP() {
 		fmt.Printf("http://%s:%s/\n", v, port)
 	}
 	var randID = func(len int) string {
@@ -55,7 +56,7 @@ func (s *Tool) httpServer(args HTTPArgs) {
 		rid = args.Upload
 	}
 	fmt.Println(">>> Upload ")
-	for _, v := range getLocalIP() {
+	for _, v := range util.GetLocalIP() {
 		fmt.Printf("http://%s:%s/%s\n", v, port, rid)
 	}
 	var sendAuth = func(w http.ResponseWriter, r *http.Request) {

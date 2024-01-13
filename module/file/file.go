@@ -24,7 +24,7 @@ func init() {
 					workers = runtime.NumCPU()
 				}
 				dir := util.Must(c.Flags().GetString("dir")).String()
-				dir = gcond.Cond(dir != "", dir, "./").(string)
+				dir = gcond.Cond(dir != "", dir, "./").String()
 				file_repeat_scanner.NewRepeatFileScanner(dir).
 					Delete(util.Must(c.Flags().GetBool("delete")).Bool()).
 					DeleteOld(util.Must(c.Flags().GetBool("old")).Bool()).
@@ -43,7 +43,7 @@ func init() {
 		cmdRepeat.Flags().Bool("debug", false, "output debug logging")
 		cmdRepeat.Flags().Bool("json", false, "output json result")
 		cmdRepeat.Flags().Bool("old", false, "delete the old files, default delete the newer files")
-		cmdRepeat.Flags().Int("workers", 0, "scan workers count")
+		cmdRepeat.Flags().Int("workers", runtime.NumCPU(), "scan workers count")
 		fileCMD.AddCommand(cmdRepeat)
 		root.AddCommand(fileCMD)
 

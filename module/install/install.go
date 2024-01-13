@@ -35,18 +35,18 @@ func init() {
 				if len(a) == 0 {
 					return fmt.Errorf("args required")
 				}
-				force := c.Name() == "install-force"
+				force := os.Args[1] == "install-force"
 				appVersion, installer := s.getInstaller(a[0])
 				if force {
 					if installer != nil {
 						return installer.InstallForce(appVersion)
 					}
-					return s.do("install", "", true)
+					return s.do("install", a[0], true)
 				} else {
 					if installer != nil {
 						return installer.Install(appVersion)
 					}
-					return s.do("install", "", false)
+					return s.do("install", a[0], false)
 				}
 			},
 		}
@@ -61,7 +61,7 @@ func init() {
 				if installer != nil {
 					return installer.Uninstall(appVersion)
 				}
-				return s.do("uninstall", "", false)
+				return s.do("uninstall", a[0], false)
 			},
 		})
 		root.AddCommand(cmd)

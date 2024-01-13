@@ -1,4 +1,4 @@
-package tool
+package web
 
 import (
 	"github.com/snail007/gmct/module/module"
@@ -16,7 +16,7 @@ func init() {
 			Long:    "simple http server",
 			Aliases: []string{"http", "www"},
 			Run: func(c *cobra.Command, a []string) {
-				s.httpServer(HTTPArgs{
+				httpServer(HTTPArgs{
 					Addr:     util.Must(c.Flags().GetString("addr")).String(),
 					RootDir:  util.Must(c.Flags().GetString("root")).String(),
 					Auth:     util.Must(c.Flags().GetStringSlice("auth")).StringSlice(),
@@ -25,8 +25,8 @@ func init() {
 				})
 			},
 		}
-		httpCMD.Flags().StringP("addr", "l", "", "simple http server listen on")
-		httpCMD.Flags().StringP("root", "d", "", "simple http server root directory")
+		httpCMD.Flags().StringP("addr", "l", ":9669", "simple http server listen on")
+		httpCMD.Flags().StringP("root", "d", ".", "simple http server root directory")
 		httpCMD.Flags().StringP("auth", "a", "", "simple http server basic auth username:password, such as : foouser:foopassowrd")
 		httpCMD.Flags().StringP("upload", "u", "", "simple http server upload url path, default `random`")
 		httpCMD.Flags().StringP("id", "i", "", "set the server id name, example: server01")
@@ -73,7 +73,7 @@ func init() {
 			},
 		}
 		downloadCMD.Flags().StringP("net", "n", "", "network to scan, format: 192.168.1.0")
-		downloadCMD.Flags().StringP("port", "p", "", "gmct tool http port")
+		downloadCMD.Flags().StringP("port", "p", "9669", "gmct tool http port")
 		downloadCMD.Flags().StringP("file", "f", "*", "filename to download")
 		downloadCMD.Flags().StringP("name", "m", "", "rename download file to")
 		downloadCMD.Flags().IntP("deep", "d", 1, "max directory deep level to list server files, value 0: no limit")
@@ -84,14 +84,6 @@ func init() {
 		downloadCMD.Flags().IntP("timeout", "t", 3, "timeout seconds to connect to server")
 		downloadCMD.Flags().StringP("dir", "c", "download_files", "path to download all files")
 
-		ipCMD := &cobra.Command{
-			Use:  "ip",
-			Long: "ip toolkit",
-			Run: func(c *cobra.Command, a []string) {
-				s.ip()
-			},
-		}
-		root.AddCommand(ipCMD)
 		root.AddCommand(httpCMD)
 		root.AddCommand(downloadCMD)
 	})

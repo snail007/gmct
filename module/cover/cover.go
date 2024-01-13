@@ -84,7 +84,7 @@ func NewCover(args Args) *Cover {
 }
 
 func (s *Cover) init() (err error) {
-	s.args.Workers = gcond.Cond(s.args.Workers <= 0, runtime.NumCPU(), s.args.Workers).(int)
+	s.args.Workers = gcond.Cond(s.args.Workers <= 0, runtime.NumCPU(), s.args.Workers).Int()
 	return
 }
 
@@ -134,7 +134,7 @@ func (s *Cover) Start() (err error) {
 	s.debugf("testing packages list, %s", strings.Join(packages, ","))
 	coverProfiles := make([]string, len(packages))
 	payload := "mode: atomic\n"
-	var p *gpool.GPool
+	var p *gpool.Pool
 	if !s.args.Ordered {
 		p = gpool.New(s.args.Workers)
 	}

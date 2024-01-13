@@ -55,9 +55,9 @@ func init() {
 		cmd.Flags().StringSliceP("env", "e", []string{}, "environment variable")
 		cmd.Flags().StringSliceP("port", "p", []string{}, "port")
 		cmd.Flags().StringP("name", "n", "", "set container name")
-		cmd.Flags().String("img", "snail007/golang:1.16", "image used to run program")
+		cmd.Flags().String("img", "snail007/golang:latest", "image used to run program")
 		cmd.Flags().Bool("debug", false, "debug output")
-		cmd.Flags().StringP("golang", "g", "", "sets some golang environment variables")
+		cmd.Flags().BoolP("golang", "g", false, "sets some golang environment variables")
 		cmd.Flags().StringP("work", "w", "/mnt", "set work dir")
 		root.AddCommand(cmd)
 	})
@@ -90,13 +90,15 @@ func (s *Docker) init() (err error) {
 			gopath, _ = os.UserHomeDir()
 			gopath = filepath.Join(gopath, "go")
 		}
-		d, _ := os.Getwd()
-		if !strings.HasPrefix(d, gopath) {
-			return fmt.Errorf("you must run command in GOPATH")
-		}
-		pkg := strings.Trim(strings.Replace(d, filepath.Join(gopath, "src"), "", 1), "/")
+		//d, _ := os.Getwd()
+		//if !strings.HasPrefix(d, gopath) {
+		//	return fmt.Errorf("you must run command in GOPATH")
+		//}
+		//pkg := strings.Trim(strings.Replace(d, filepath.Join(gopath, "src"), "", 1), "/")
 		s.args.DArg_v = append(s.args.DArg_v, gopath+":/go")
-		s.args.DArg_e = append(s.args.DArg_e, "BUILDDIR="+pkg, "GOSUMDB=off", "CGO_ENABLED=1")
+		//s.args.DArg_e = append(s.args.DArg_e, "BUILDDIR="+pkg, "GOSUMDB=off", "CGO_ENABLED=1")
+		s.args.DArg_e = append(s.args.DArg_e, "GOSUMDB=off", "CGO_ENABLED=1")
+
 	}
 
 	for k, v := range s.args.DArg_v {
