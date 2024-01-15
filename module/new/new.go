@@ -43,18 +43,18 @@ func init() {
 				return nil
 			},
 		}
-		newCMD.AddCommand(&cobra.Command{
+		c := &cobra.Command{
 			Use:     "web",
 			Aliases: []string{"api", "api-simple", "admin"},
 			RunE: func(c *cobra.Command, a []string) error {
 				s.args.Package = util.Must(c.Flags().GetBool("pkg")).String()
-				//s.args.Update = util.Must(c.Flags().GetBool("pkg")).String()
 				s.replace(c.Name())
 				return nil
 			},
-		})
-		newCMD.Flags().String("pkg", "", "package path of project in GOPATH")
+		}
+		c.Flags().String("pkg", "", "package path of project in GOPATH")
 		//cmd.Flags().BoolP("force", "f", false, "overwrite controller file, if it exists.")
+		newCMD.AddCommand(c)
 		root.AddCommand(newCMD)
 	})
 }
