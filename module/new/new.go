@@ -28,6 +28,7 @@ func init() {
 		newCMD := &cobra.Command{
 			Use: "new",
 			PersistentPreRunE: func(c *cobra.Command, a []string) error {
+				s.args.Package = util.Must(c.Flags().GetString("pkg")).String()
 				s.GOPATH = strings.TrimSpace(os.Getenv("GOPATH"))
 				if s.GOPATH == "" {
 					return fmt.Errorf("GOPATH environment variable not found")
@@ -47,7 +48,7 @@ func init() {
 			Use:     "web",
 			Aliases: []string{"api", "api-simple", "admin"},
 			RunE: func(c *cobra.Command, a []string) error {
-				s.args.Package = util.Must(c.Flags().GetBool("pkg")).String()
+				//s.args.Package = util.Must(c.Flags().GetBool("pkg")).String()
 				s.replace(c.Name())
 				return nil
 			},
