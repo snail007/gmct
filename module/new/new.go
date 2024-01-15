@@ -48,7 +48,6 @@ func init() {
 			Use:     "web",
 			Aliases: []string{"api", "api-simple", "admin"},
 			RunE: func(c *cobra.Command, a []string) error {
-				//s.args.Package = util.Must(c.Flags().GetBool("pkg")).String()
 				s.replace(c.Name())
 				return nil
 			},
