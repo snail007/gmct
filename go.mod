@@ -9,7 +9,7 @@ require (
 	github.com/magiconair/properties v1.8.1
 	github.com/pkg/errors v0.8.1
 	github.com/schollz/progressbar/v3 v3.8.1
-	github.com/snail007/gmc v0.0.0-20240102034909-048e5cfada0d
+	github.com/snail007/gmc v0.0.0-20240115113721-8a6ea8c50267
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.8.2
