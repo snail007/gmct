@@ -24,7 +24,7 @@ func init() {
 			RunE: func(c *cobra.Command, a []string) error {
 				srv := NewModel(Args{
 					ForceCreate: util.Must(c.Flags().GetBool("force")).Bool(),
-					Table:       util.Must(c.Flags().GetString("name")).String(),
+					Table:       util.Must(c.Flags().GetString("table")).String(),
 				})
 				err := srv.init()
 				if err != nil {
