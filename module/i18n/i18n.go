@@ -116,10 +116,10 @@ func (s *I18n) pack() (err error) {
 	packageName := util.GetPackageName(currentDir)
 	i18n := fmt.Sprintf(`package %s
 
-import gmci18n "github.com/snail007/gmc/i18n"
+import gi18n "github.com/snail007/gmc/module/i18n"
 
 func init(){
-	gmci18n.SetBinData(map[string]string{
+	gi18n.SetBinData(map[string]string{
 
 {{HOLDER}}
 	})
