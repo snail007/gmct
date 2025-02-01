@@ -114,7 +114,7 @@ func GetProfileInfo(files []string) (info *ProfileInfo, err error) {
 	info.GoRoot = goroot
 	info.GoPath = gopath
 	if info.GoRoot == "" {
-		return nil, fmt.Errorf("fail to get GOROOT from profile file")
+		return nil, fmt.Errorf("fail to get GOROOT from profile [%v] file", files)
 	}
 	return
 }
