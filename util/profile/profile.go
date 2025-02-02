@@ -61,6 +61,9 @@ func NewPprofPBFile(opt *ParseOption, file string) (pf *PprofPBFile, err error) 
 		if h[0][0] == '-' {
 			continue
 		}
+		if len(h) < 2 {
+			continue
+		}
 		path := h[1]
 		stack := b[1:]
 		for k := range b[1:] {
