@@ -52,17 +52,21 @@ func NewPprofPBFile(opt *ParseOption, file string) (pf *PprofPBFile, err error) 
 		}
 		bytesN := uint64(0)
 		b := strings.Split(v, "\n")
+		isBytes := false
 		switch info.Type {
 		case "inuse_space", "alloc_space", "inuse_objects", "alloc_objects":
 			bytesN, _ = gbytes.ParseSize(strings.Fields(b[0])[1])
 			b = b[1:]
+			isBytes = true
 		}
 		h := strings.Fields(b[0])
-		if h[0][0] == '-' {
+		if len(h) < 2 || h[0][0] == '-' {
 			continue
 		}
-		if len(h) < 2 {
-			continue
+		if isBytes {
+			if _, e := gbytes.ParseSize(h[0]); e != nil {
+				continue
+			}
 		}
 		path := h[1]
 		stack := b[1:]
