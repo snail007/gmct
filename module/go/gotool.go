@@ -15,6 +15,7 @@ import (
 	gnet "github.com/snail007/gmc/util/net"
 	ghook "github.com/snail007/gmc/util/process/hook"
 	grand "github.com/snail007/gmc/util/rand"
+	gurl "github.com/snail007/gmc/util/url"
 	gvalue "github.com/snail007/gmc/util/value"
 	"github.com/snail007/gmct/module/module"
 	goinstall "github.com/snail007/gmct/scripts/go/install"
@@ -23,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -181,7 +183,6 @@ func init() {
 			},
 		}
 		bindPprofCommonFlags := func(c *cobra.Command) {
-			c.Flags().IntP("duration", "d", 30, "seconds of profiling")
 			c.Flags().Bool("cpu", false, "fetch cpu profile in url mode")
 			c.Flags().Bool("mem", false, "fetch heap profile in url mode")
 			c.Flags().Bool("goroutine", false, "fetch goroutine profile in url mode")
@@ -191,7 +192,6 @@ func init() {
 			c.Flags().StringSliceP("ignore", "i", []string{}, "ignored library to download")
 			c.Flags().String("pre", "", "access the url before fetch mutex and block profile")
 			c.Flags().String("post", "", "access the url after fetch mutex and block profile")
-
 		}
 
 		pprofCMD.Flags().String("go", "latest", "go version, example: 1.19, 1.20")
@@ -226,10 +226,10 @@ rm -rf /tmp/gogetmod_*
 						continue
 					}
 					name := arr[len(arr)-1]
-					be.AppendTask(func(ctx context.Context) (value interface{}, err error) {
+					be.AppendTask(func(ctx context.Context) (value interface{}, _ func(), err error) {
 						glog.Infof("killing %s", name)
 						gexec.NewCommand("docker stop " + name).Exec()
-						return nil, nil
+						return nil, nil, nil
 					})
 				}
 				be.WaitAll()
@@ -302,7 +302,6 @@ func pprofFetch(c *cobra.Command, a []string) (files []string, err error) {
 	if len(a) == 0 {
 		return nil, fmt.Errorf("arg required")
 	}
-	dur := gvalue.MustAny(c.Flags().GetInt("duration"))
 	baseURL := strings.TrimSuffix(a[0], "/")
 	preURL := gvalue.Must(c.Flags().GetString("pre")).String()
 	postURL := gvalue.Must(c.Flags().GetString("post")).String()
@@ -319,6 +318,7 @@ func pprofFetch(c *cobra.Command, a []string) (files []string, err error) {
 		if u == "" {
 			return
 		}
+		glog.Infof("fetch %s %s", u, typ)
 		_, code, _, e := ghttp.Get(u, time.Second*10, nil, nil)
 		if e != nil {
 			glog.Warnf("access "+typ+" url fail, error: %s", e)
@@ -327,8 +327,7 @@ func pprofFetch(c *cobra.Command, a []string) (files []string, err error) {
 		}
 	}
 	accessURL(preURL, "pre")
-	be := gbatch.NewBatchExecutor()
-	timeout := time.Second * time.Duration(dur.Int()*2)
+	timeout := time.Second * 60
 	cnt := 0
 	for _, v := range pprofTypes {
 		typ := v[0]
@@ -339,26 +338,30 @@ func pprofFetch(c *cobra.Command, a []string) (files []string, err error) {
 		filename := typ + ".pprof"
 		files = append(files, filename)
 		cnt++
-		be.AppendTask(func(ctx context.Context) (value interface{}, err error) {
-			link := baseURL + "/" + path + "?seconds=" + dur.String()
-			resp, err := ghttp.DownloadToFile(link, timeout, nil, nil, filename)
-			if resp != nil && resp.StatusCode != 200 {
-				err = fmt.Errorf("reponse %d", resp.StatusCode)
-				return
-			}
+		linkU := gurl.NewBuilder().Parse(baseURL + "/" + path)
+		switch typ {
+		case "allocs":
+		case "go":
+		case "mutex":
+		case "block":
+		case "mem":
+			linkU.SetQuery("gc", "1")
+		case "cpu":
+			linkU.SetQuery("gc", "1")
+		}
+		link := linkU.String()
+		glog.Infof("fetch %s: %s", typ, link)
+		var resp *http.Response
+		resp, err = ghttp.DownloadToFile(link, timeout, nil, nil, filename)
+		if resp != nil && resp.StatusCode != 200 {
+			err = fmt.Errorf("reponse %d", resp.StatusCode)
 			return
-		})
+		}
 	}
 	if cnt == 0 {
 		return nil, fmt.Errorf("at least one type to profiling, one of cpu,mem,goroutine,allocs,mutex,block")
 	}
-	rs := be.WaitAll()
 	accessURL(postURL, "post")
-	for _, r := range rs {
-		if r.Err() != nil {
-			return nil, r.Err()
-		}
-	}
 	return
 }
 
