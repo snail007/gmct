@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	gcast "github.com/snail007/gmc/util/cast"
 	grand "github.com/snail007/gmc/util/rand"
 	"github.com/snail007/gmct/util"
 	"io"
@@ -473,7 +474,7 @@ func (s *Tool) getDownloadConfig(key string, args *DownloadArgs) interface{} {
 }
 func (s *Tool) getDownloadHTTPClient(auth []string, scanURL *URL.URL, args *DownloadArgs) (user, pass string, client *ghttp.HTTPClient) {
 	client = ghttp.NewHTTPClient()
-	client.SetProxyFromEnv(true)
+	client.SetProxyFromEnv(!gcast.ToBool(os.Getenv("DISABLE_PROXY")))
 	if len(auth) == 2 {
 		user, pass = auth[0], auth[1]
 	}

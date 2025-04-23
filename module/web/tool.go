@@ -77,7 +77,7 @@ func init() {
 		downloadCMD.Flags().StringP("file", "f", "*", "filename to download")
 		downloadCMD.Flags().StringP("name", "m", "", "rename download file to")
 		downloadCMD.Flags().IntP("deep", "d", 1, "max directory deep level to list server files, value 0: no limit")
-		downloadCMD.Flags().StringSliceP("host", "h", []string{}, "specify a domain or ip to download, example: 192.168.1.1 or 192.168.1.1:9090. \nyou can specify auth info, example: foo_user:foo_pass@192.168.1.2")
+		downloadCMD.Flags().StringSliceP("host", "x", []string{}, "specify a domain or ip to download, example: 192.168.1.1 or 192.168.1.1:9090. \nyou can specify auth info, example: foo_user:foo_pass@192.168.1.2")
 		downloadCMD.Flags().StringP("auth", "a", "", "basic auth info, example: username:password")
 		downloadCMD.Flags().StringP("id", "i", "", "server id name to download files")
 		downloadCMD.Flags().Bool("all", false, "download all files matched")
