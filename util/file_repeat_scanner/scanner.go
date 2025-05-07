@@ -158,7 +158,7 @@ func (s *RepeatFileScanner) DeleteRepeat() {
 			onWriteResult1(logPath)
 		}
 	}
-	s.buf.WriteStrLn("total: %d, repeat: %d, size: %s", len(s.allFiles), s.repeatCount, size)
+	s.buf.WriteStrLn("total: %d, repeat: %d, size: %s, [repeated] will be deleted", len(s.allFiles), s.repeatCount, size)
 	for _, item := range result {
 		onViewItem(item)
 		for _, f := range item.RepeatFiles {
