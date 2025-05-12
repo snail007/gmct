@@ -1,4 +1,7 @@
 GMCT更新日志
+v0.0.52
+1.gmct web 增加默认首页支持
+
 v0.0.51
 1.fix download
 
