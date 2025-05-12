@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-func ServeFile(w http.ResponseWriter, r *http.Request, name string) {
+func ServeFile(w http.ResponseWriter, r *http.Request, name, indexPage, root string) {
 	if containsDotDot(r.URL.Path) {
 		// Too many programs use r.URL.Path to construct the argument to
 		// serveFile. Reject the request under the assumption that happened
@@ -30,7 +30,7 @@ func ServeFile(w http.ResponseWriter, r *http.Request, name string) {
 		return
 	}
 	dir, file := filepath.Split(name)
-	serveFile(w, r, http.Dir(dir), file, false)
+	serveFile(w, r, http.Dir(dir), file, indexPage, root, false)
 }
 func containsDotDot(v string) bool {
 	if !strings.Contains(v, "..") {
@@ -61,8 +61,7 @@ func toHTTPError(err error) (msg string, httpStatus int) {
 	// Default:
 	return "500 Internal Server Error", http.StatusInternalServerError
 }
-func serveFile(w http.ResponseWriter, r *http.Request, fs http.FileSystem, name string, redirect bool) {
-	//const indexPage = "/index.html"
+func serveFile(w http.ResponseWriter, r *http.Request, fs http.FileSystem, name, indexPage, root string, redirect bool) {
 
 	// redirect .../index.html to .../
 	// can't use Redirect() because that would make the path absolute,
@@ -113,17 +112,19 @@ func serveFile(w http.ResponseWriter, r *http.Request, fs http.FileSystem, name 
 		}
 
 		// use contents of index.html for directory, if present
-		//index := strings.TrimSuffix(name, "/") + indexPage
-		//ff, err := fs.Open(index)
-		//if err == nil {
-		//	defer ff.Close()
-		//	dd, err := ff.Stat()
-		//	if err == nil {
-		//		name = index
-		//		d = dd
-		//		f = ff
-		//	}
-		//}
+		if indexPage != "" && r.URL.Path == "/" {
+			index := filepath.Join(name, indexPage)
+			ff, err := fs.Open(index)
+			if err == nil {
+				defer ff.Close()
+				dd, err := ff.Stat()
+				if err == nil {
+					name = index
+					d = dd
+					f = ff
+				}
+			}
+		}
 	}
 
 	// Still a directory? (we didn't find an index.html file)

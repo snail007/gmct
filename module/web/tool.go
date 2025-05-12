@@ -17,11 +17,12 @@ func init() {
 			Aliases: []string{"http", "www"},
 			Run: func(c *cobra.Command, a []string) {
 				httpServer(HTTPArgs{
-					Addr:     util.Must(c.Flags().GetString("addr")).String(),
-					RootDir:  util.Must(c.Flags().GetString("root")).String(),
-					Auth:     util.Must(c.Flags().GetStringSlice("auth")).StringSlice(),
-					Upload:   util.Must(c.Flags().GetString("upload")).String(),
-					ServerID: util.Must(c.Flags().GetString("id")).String(),
+					Addr:      util.Must(c.Flags().GetString("addr")).String(),
+					RootDir:   util.Must(c.Flags().GetString("root")).String(),
+					Auth:      util.Must(c.Flags().GetStringSlice("auth")).StringSlice(),
+					Upload:    util.Must(c.Flags().GetString("upload")).String(),
+					ServerID:  util.Must(c.Flags().GetString("id")).String(),
+					IndexPage: util.Must(c.Flags().GetString("index")).String(),
 				})
 			},
 		}
@@ -30,6 +31,7 @@ func init() {
 		httpCMD.Flags().StringP("auth", "a", "", "simple http server basic auth username:password, such as : foouser:foopassowrd")
 		httpCMD.Flags().StringP("upload", "u", "", "simple http server upload url path, default `random`")
 		httpCMD.Flags().StringP("id", "i", "", "set the server id name, example: server01")
+		httpCMD.Flags().StringP("index", "f", "", "set the web default index page")
 
 		downloadCMD := &cobra.Command{
 			Use:     "download",

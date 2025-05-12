@@ -27,11 +27,12 @@ var (
 )
 
 type HTTPArgs struct {
-	Addr     string
-	RootDir  string
-	Auth     []string
-	Upload   string
-	ServerID string
+	Addr      string
+	RootDir   string
+	Auth      []string
+	Upload    string
+	ServerID  string
+	IndexPage string
 }
 
 func httpServer(args HTTPArgs) {
@@ -123,6 +124,7 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 		root := args.RootDir
 		reqPath := filepath.Clean(r.URL.Path)
 		rootAbs := gfile.Abs(root)
+		indexPage := args.IndexPage
 		reqPathAbs := gfile.Abs(filepath.Join(root, reqPath))
 		if !strings.Contains(reqPathAbs, rootAbs) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -163,7 +165,7 @@ document.getElementById("upload").onclick=function () {document.forms["upload"].
 		if id := args.ServerID; id != "" {
 			w.Header().Set(headerServerIDKey, id)
 		}
-		ServeFile(w, r, reqPathAbs)
+		ServeFile(w, r, reqPathAbs, indexPage, args.RootDir)
 	}))
 	glog.Panic(http.ListenAndServe(args.Addr, nil))
 }
